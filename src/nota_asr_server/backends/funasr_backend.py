@@ -19,12 +19,14 @@ class FunASRBackend(ASRBackend):
         model_config: Mapping[str, Any],
         capabilities: BackendCapabilities,
         accepts_language_hint: bool,
+        generate_config: Mapping[str, Any] | None = None,
     ) -> None:
         self.alias = alias
         self.device = device
         self.model_config = dict(model_config)
         self.capabilities = capabilities
         self.accepts_language_hint = accepts_language_hint
+        self.generate_config = dict(generate_config or {})
         self._model: Any = None
         self._load_lock = threading.RLock()
         self._inference_lock = threading.Lock()
@@ -63,13 +65,16 @@ class FunASRBackend(ASRBackend):
         duration: float,
     ) -> BackendResult:
         self.load()
-        generate_kwargs: dict[str, Any] = {
-            "input": audio_path,
-            "batch_size": 1,
-            "return_spk_res": diarization,
-            "output_timestamp": True,
-            "return_time_stamps": True,
-        }
+        generate_kwargs = dict(self.generate_config)
+        generate_kwargs.update(
+            {
+                "input": audio_path,
+                "batch_size": 1,
+                "return_spk_res": diarization,
+                "output_timestamp": True,
+                "return_time_stamps": True,
+            }
+        )
         if self.accepts_language_hint:
             generate_kwargs["language"] = language or "auto"
         if diarization and speaker_count is not None:

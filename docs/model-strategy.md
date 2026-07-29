@@ -9,7 +9,11 @@ Korean, and Cantonese. The pipeline loads:
 - `fsmn-vad` for long-audio speech segmentation.
 - `cam++` for speaker embeddings and clustering.
 
-SenseVoice rich tags are internal metadata and are removed by normalization.
+SenseVoice inference always uses `use_itn=true`. This selects its native
+`withitn` output mode, which asks SenseVoice itself to emit punctuation and
+written forms for values such as dates and numbers. Nota does not load
+`ct-punc` for SenseVoice. Rich tags are internal metadata and are removed by
+normalization.
 
 ## Paraformer Option
 

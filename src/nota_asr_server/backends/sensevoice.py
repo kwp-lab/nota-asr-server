@@ -20,5 +20,5 @@ class SenseVoiceBackend(FunASRBackend):
                 decoder_hotwords=False,
             ),
             accepts_language_hint=True,
+            generate_config={"use_itn": True},
         )
-
