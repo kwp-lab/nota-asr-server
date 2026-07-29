@@ -1,0 +1,4 @@
+Nota ASR Server contains an independently structured service inspired by the
+OpenAI-compatible API example from modelscope/FunASR, licensed under the MIT
+License. FunASR remains an external runtime dependency.
+
