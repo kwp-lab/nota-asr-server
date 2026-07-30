@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import threading
 from collections.abc import Callable
 
@@ -15,6 +16,8 @@ BackendFactory = Callable[[str], ASRBackend]
 class ModelManager:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+        self.settings.model_dir.mkdir(parents=True, exist_ok=True)
+        os.environ["MODELSCOPE_CACHE"] = str(self.settings.model_dir)
         self._factories: dict[str, BackendFactory] = {
             "sensevoice": SenseVoiceBackend,
             "paraformer": ParaformerBackend,
@@ -105,4 +108,3 @@ class ModelManager:
                 }
             )
         return items
-

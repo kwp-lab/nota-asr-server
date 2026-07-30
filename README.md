@@ -27,6 +27,7 @@ source .venv/bin/activate
 python -m pip install -U pip setuptools wheel
 python -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 python -m pip install -e '.[dev]'
+cp .env.example .env
 ```
 
 Run tests without loading real models:
@@ -41,7 +42,8 @@ Start the service:
 NOTA_PORT=8010 nota-asr-server
 ```
 
-The first start downloads SenseVoice, FSMN-VAD, and CAM++. Check readiness at
+The first start downloads SenseVoice, FSMN-VAD, and CAM++ into the project-local
+`models/` directory configured by `NOTA_MODEL_DIR`. Check readiness at
 `http://localhost:8010/ready`.
 
 The default listener is `0.0.0.0:8010`; another LAN computer can replace

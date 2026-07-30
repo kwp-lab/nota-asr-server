@@ -6,7 +6,7 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=%h/workspace/nota-asr-server
-EnvironmentFile=-%h/.config/nota-asr-server.env
+EnvironmentFile=-%h/workspace/nota-asr-server/.env
 Environment=PYTHONUNBUFFERED=1
 ExecStart=%h/workspace/nota-asr-server/.venv/bin/nota-asr-server
 Restart=on-failure
@@ -17,4 +17,3 @@ TimeoutStopSec=60
 
 [Install]
 WantedBy=default.target
-

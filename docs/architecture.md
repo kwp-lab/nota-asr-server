@@ -21,6 +21,8 @@ Windows client
 - Audio storage owns bounded disk spooling, probing, and cleanup.
 - ModelManager owns allowlisting, lazy loading, and inference concurrency.
 - Backends own FunASR model configuration.
+- The model manager maps `NOTA_MODEL_DIR` to ModelScope's process-wide cache
+  before any FunASR model is loaded.
 - The short-recording cluster adapter owns the FunASR `<20` embedding
   compatibility behavior documented in `model-strategy.md`.
 - Normalization owns the public response semantics.

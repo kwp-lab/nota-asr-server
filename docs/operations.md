@@ -16,8 +16,8 @@ Install it as a user service:
 ```bash
 mkdir -p ~/.config/systemd/user
 cp deploy/systemd/nota-asr-server.service ~/.config/systemd/user/
-cp .env.example ~/.config/nota-asr-server.env
-chmod 600 ~/.config/nota-asr-server.env
+cp .env.example .env
+chmod 600 .env
 systemctl --user daemon-reload
 systemctl --user enable --now nota-asr-server
 ```
@@ -35,6 +35,19 @@ systemctl --user restart nota-asr-server
 
 Model startup can take tens of seconds after a cold download. Readiness must
 remain false until preload completes.
+
+## Model Storage
+
+`NOTA_MODEL_DIR` defaults to `./models`. At startup the service passes its
+absolute path to ModelScope through `MODELSCOPE_CACHE`; FunASR then downloads
+missing model snapshots below that directory. ModelScope normally defaults to
+a user cache under `~/.cache/modelscope`, but Nota deliberately overrides that
+SDK default so a deployment's models live with its project data.
+
+The `models/` directory and local `.env` are ignored by Git. Back them up or
+copy them separately when an offline machine must reuse downloaded weights.
+With Docker Compose, `./models` is bind-mounted at `/app/models`, so downloaded
+weights remain visible in the repository checkout on the host.
 
 User services normally start when that user logs in. A host administrator may
 enable lingering with `loginctl enable-linger <user>` when the service must

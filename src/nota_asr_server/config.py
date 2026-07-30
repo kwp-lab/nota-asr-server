@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 
 SUPPORTED_MODELS = ("sensevoice", "paraformer")
@@ -24,6 +27,13 @@ def _env_csv(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(item.strip() for item in raw.split(",") if item.strip())
 
 
+def _env_path(name: str, default: str) -> Path:
+    path = Path(os.getenv(name, default)).expanduser()
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    return path.resolve()
+
+
 @dataclass(frozen=True)
 class Settings:
     host: str = "0.0.0.0"
@@ -31,6 +41,7 @@ class Settings:
     device: str = "cpu"
     preload_model: str = "sensevoice"
     enabled_models: tuple[str, ...] = SUPPORTED_MODELS
+    model_dir: Path = Path("models")
     api_keys: tuple[str, ...] = ()
     max_upload_bytes: int = 2 * 1024 * 1024 * 1024
     max_audio_seconds: int = 6 * 60 * 60
@@ -40,12 +51,14 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> "Settings":
+        load_dotenv(Path.cwd() / ".env", override=False)
         settings = cls(
             host=os.getenv("NOTA_HOST", cls.host),
             port=_env_int("NOTA_PORT", cls.port),
             device=os.getenv("NOTA_DEVICE", cls.device),
             preload_model=os.getenv("NOTA_PRELOAD_MODEL", cls.preload_model),
             enabled_models=_env_csv("NOTA_ENABLED_MODELS", SUPPORTED_MODELS),
+            model_dir=_env_path("NOTA_MODEL_DIR", str(cls.model_dir)),
             api_keys=_env_csv("NOTA_API_KEYS", ()),
             max_upload_bytes=_env_int("NOTA_MAX_UPLOAD_BYTES", cls.max_upload_bytes),
             max_audio_seconds=_env_int("NOTA_MAX_AUDIO_SECONDS", cls.max_audio_seconds),
@@ -66,10 +79,11 @@ class Settings:
             raise ValueError("NOTA_ENABLED_MODELS must contain at least one model")
         if self.preload_model not in self.enabled_models:
             raise ValueError("NOTA_PRELOAD_MODEL must be listed in NOTA_ENABLED_MODELS")
+        if self.model_dir.exists() and not self.model_dir.is_dir():
+            raise ValueError("NOTA_MODEL_DIR must be a directory")
         if self.max_upload_bytes <= 0:
             raise ValueError("NOTA_MAX_UPLOAD_BYTES must be positive")
         if self.max_audio_seconds <= 0:
             raise ValueError("NOTA_MAX_AUDIO_SECONDS must be positive")
         if self.max_concurrent_inferences <= 0:
             raise ValueError("NOTA_MAX_CONCURRENT_INFERENCES must be positive")
-

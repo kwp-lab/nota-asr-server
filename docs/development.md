@@ -15,6 +15,11 @@ pytest --cov=nota_asr_server
 Contract and API tests use fake backends and must not download models. Real
 model smoke tests are operational checks and run separately.
 
+Copy `.env.example` to `.env` before starting the server. The local `.env` is
+not committed because it may contain API keys; non-secret defaults remain in
+the tracked example. Relative `NOTA_MODEL_DIR` paths are resolved from the
+process working directory, which should be the repository root.
+
 ## Change Checklist
 
 - Preserve the compact OpenAI-compatible response.
@@ -22,4 +27,3 @@ model smoke tests are operational checks and run separately.
 - Update `docs/api-contract.md` for compatible clarifications.
 - Create an ADR and increment `schema_version` for breaking changes.
 - Never commit recordings, model weights, API keys, or `.env` files.
-

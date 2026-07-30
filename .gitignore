@@ -8,6 +8,6 @@ htmlcov/
 build/
 dist/
 .env
+models/
 *.log
 sample.*
-

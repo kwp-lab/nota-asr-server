@@ -8,11 +8,8 @@ services:
       NOTA_DEVICE: "${NOTA_DEVICE:-cpu}"
       NOTA_PRELOAD_MODEL: "${NOTA_PRELOAD_MODEL:-sensevoice}"
       NOTA_ENABLED_MODELS: "${NOTA_ENABLED_MODELS:-sensevoice,paraformer}"
+      NOTA_MODEL_DIR: /app/models
       NOTA_API_KEYS: "${NOTA_API_KEYS:-}"
     volumes:
-      - nota-model-cache:/root/.cache
+      - ./models:/app/models
     shm_size: "2gb"
-
-volumes:
-  nota-model-cache:
-
