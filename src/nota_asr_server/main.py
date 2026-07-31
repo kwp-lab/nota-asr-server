@@ -10,11 +10,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from nota_asr_server import __version__
+from nota_asr_server.api.batch_routes import router as batch_router
 from nota_asr_server.api.routes import router
 from nota_asr_server.config import Settings
 from nota_asr_server.errors import APIError
 from nota_asr_server.schemas import ErrorDetail, ErrorEnvelope
 from nota_asr_server.services.model_manager import ModelManager
+from nota_asr_server.services.batch_jobs import BatchJobService
 
 
 logger = logging.getLogger("nota_asr_server")
@@ -27,6 +29,7 @@ def _error_response(
     error_type: str,
     code: str,
     message: str,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     request_id = getattr(request.state, "request_id", uuid.uuid4().hex)
     payload = ErrorEnvelope(
@@ -37,20 +40,24 @@ def _error_response(
             request_id=request_id,
         )
     )
+    response_headers = {"X-Request-ID": request_id}
+    response_headers.update(headers or {})
     return JSONResponse(
         status_code=status_code,
         content=payload.model_dump(),
-        headers={"X-Request-ID": request_id},
+        headers=response_headers,
     )
 
 
 def create_app(
     settings: Settings | None = None,
     model_manager: ModelManager | None = None,
+    batch_jobs: BatchJobService | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings.from_env()
     resolved_settings.validate()
     manager = model_manager or ModelManager(resolved_settings)
+    jobs = batch_jobs or BatchJobService(resolved_settings, manager)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -58,7 +65,11 @@ def create_app(
             await run_in_threadpool(manager.preload)
         except Exception:
             logger.exception("Default model preload failed")
-        yield
+        jobs.start()
+        try:
+            yield
+        finally:
+            await run_in_threadpool(jobs.stop)
 
     app = FastAPI(
         title="Nota ASR Server",
@@ -68,6 +79,7 @@ def create_app(
     )
     app.state.settings = resolved_settings
     app.state.model_manager = manager
+    app.state.batch_jobs = jobs
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
@@ -84,6 +96,7 @@ def create_app(
             error_type=exc.error_type,
             code=exc.code,
             message=exc.message,
+            headers=exc.headers,
         )
 
     @app.exception_handler(RequestValidationError)
@@ -115,8 +128,8 @@ def create_app(
         )
 
     app.include_router(router)
+    app.include_router(batch_router)
     return app
 
 
 app = create_app()
-

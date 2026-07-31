@@ -75,3 +75,55 @@ class ErrorDetail(StrictModel):
 class ErrorEnvelope(StrictModel):
     error: ErrorDetail
 
+
+class BatchCapabilities(StrictModel):
+    batch_transcription_version: Literal["1"] = "1"
+    upload_chunk_bytes: int = Field(gt=0)
+    max_upload_bytes: int = Field(gt=0)
+    max_audio_seconds: int = Field(gt=0)
+    audio_formats: list[Literal["ogg"]]
+
+
+class CreateTranscriptionJob(StrictModel):
+    file_name: str = Field(min_length=1, max_length=255)
+    content_type: Literal["audio/ogg", "application/ogg"] = "audio/ogg"
+    size_bytes: int = Field(gt=0)
+    model: str | None = None
+    language: str = Field(default="auto", min_length=1, max_length=32)
+    response_format: Literal["verbose_json"] = "verbose_json"
+    diarization: bool = True
+    speaker_count: int | None = Field(default=None, ge=1, le=64)
+
+
+class JobFailure(StrictModel):
+    code: str
+    message: str
+
+
+class TranscriptionJobStatus(StrictModel):
+    id: str
+    state: Literal[
+        "uploading",
+        "queued",
+        "processing",
+        "succeeded",
+        "failed",
+        "cancelled",
+    ]
+    phase: Literal[
+        "uploading",
+        "queued",
+        "transcribing",
+        "diarizing",
+        "finalizing",
+        "completed",
+        "failed",
+        "cancelled",
+    ]
+    upload_offset: int = Field(ge=0)
+    upload_length: int = Field(gt=0)
+    progress_current: int = Field(ge=0)
+    progress_total: int = Field(ge=0)
+    progress_unit: Literal["bytes", "windows", "steps"]
+    expires_at: str
+    error: JobFailure | None = None

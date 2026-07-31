@@ -40,3 +40,19 @@ def test_sensevoice_enables_native_punctuation_and_itn():
     assert result.text == "会议开始。"
     assert result.segments[0].text == "会议开始。"
     assert result.segments[0].speaker == "speaker_0"
+
+
+def test_window_speaker_centers_follow_normalized_first_appearance_order():
+    centers = SenseVoiceBackend._ordered_speaker_centers(
+        [
+            {
+                "sentence_info": [
+                    {"text": "second first", "spk": 1},
+                    {"text": "then zero", "spk": 0},
+                ],
+                "spk_embedding_center": [[1.0, 0.0], [0.0, 1.0]],
+            }
+        ]
+    )
+
+    assert centers == ((0.0, 1.0), (1.0, 0.0))

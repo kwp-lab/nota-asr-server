@@ -54,6 +54,26 @@ Contract rules:
 
 The compact `json` response remains `{"text": "..."}` for OpenAI compatibility.
 
+## Nota Durable Batch Extension
+
+Nota meeting clients discover `batch_transcription_version=1` at
+`GET /v1/nota/capabilities`. They create an authenticated job, upload the
+original Ogg sequentially with `Upload-Offset` and
+`Upload-Checksum: sha256=<hex>`, finalize it, poll status, and fetch the result.
+
+The final `GET /v1/nota/transcription-jobs/{id}/result` response is exactly the
+Stable Verbose Response above. A successful result read does not delete data:
+the client first commits the response locally and then acknowledges cleanup
+with `DELETE /v1/nota/transcription-jobs/{id}`.
+
+The extension guarantees that speaker ids are stable across the entire final
+meeting response. Upload chunks and internal processing windows are not
+independent diarization scopes.
+
+The server rejects job creation or completion with
+`error.code=insufficient_storage` and HTTP 507 when the persistent data
+directory cannot safely hold the upload or the bounded processing workspace.
+
 ## Error Response
 
 All application and validation errors use:

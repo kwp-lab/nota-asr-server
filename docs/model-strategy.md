@@ -50,6 +50,12 @@ turns, and poor audio can merge speakers or split one speaker into several.
 Clients should let users correct labels. Supplying an accurate `speaker_count`
 improves predictability but cannot exceed the number of usable speech chunks.
 
+For Nota batch jobs, FunASR returns private per-window speaker centroids through
+`return_spk_center`. The server clusters all window centroids together only
+after every window completes, applies `speaker_count` at that global stage, and
+renumbers the resulting clusters by first appearance. Per-window labels never
+escape in the final response.
+
 ## Stable Output
 
 SenseVoice and Paraformer raw results are not schema-compatible. The normalizer

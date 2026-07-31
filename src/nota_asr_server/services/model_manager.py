@@ -5,7 +5,7 @@ import threading
 from collections.abc import Callable
 
 from nota_asr_server.backends import ParaformerBackend, SenseVoiceBackend
-from nota_asr_server.backends.base import ASRBackend, BackendResult
+from nota_asr_server.backends.base import ASRBackend, BackendResult, BackendWindowResult
 from nota_asr_server.config import Settings
 from nota_asr_server.errors import ModelLoadError, UnknownModelError
 
@@ -72,6 +72,38 @@ class ModelManager:
                 diarization=diarization,
                 speaker_count=speaker_count,
                 duration=duration,
+            )
+
+    def transcribe_window(
+        self,
+        model: str,
+        audio_path: str,
+        *,
+        language: str,
+        diarization: bool,
+        duration: float,
+    ) -> BackendWindowResult:
+        backend = self.get_backend(model)
+        with self._inference_gate:
+            return backend.transcribe_window(
+                audio_path,
+                language=language,
+                diarization=diarization,
+                duration=duration,
+            )
+
+    def cluster_speaker_centers(
+        self,
+        model: str,
+        centers: tuple[tuple[float, ...], ...],
+        *,
+        speaker_count: int | None,
+    ) -> tuple[int, ...]:
+        backend = self.get_backend(model)
+        with self._inference_gate:
+            return backend.cluster_speaker_centers(
+                centers,
+                speaker_count=speaker_count,
             )
 
     @property

@@ -9,5 +9,7 @@ build/
 dist/
 .env
 models/
+data/
 *.log
 sample.*
+benchmark-*.json

@@ -19,6 +19,7 @@ Copy `.env.example` to `.env` before starting the server. The local `.env` is
 not committed because it may contain API keys; non-secret defaults remain in
 the tracked example. Relative `NOTA_MODEL_DIR` paths are resolved from the
 process working directory, which should be the repository root.
+`NOTA_DATA_DIR` is resolved the same way and is ignored by Git.
 
 ## Change Checklist
 

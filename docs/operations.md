@@ -5,6 +5,7 @@
 - `/health` proves the HTTP process is alive.
 - `/ready` proves the preloaded model is ready.
 - `/v1/models` lists enabled aliases and readiness.
+- `/v1/nota/capabilities` advertises the durable batch protocol and limits.
 - `/docs` exposes Swagger UI.
 
 ## systemd
@@ -49,6 +50,17 @@ copy them separately when an offline machine must reuse downloaded weights.
 With Docker Compose, `./models` is bind-mounted at `/app/models`, so downloaded
 weights remain visible in the repository checkout on the host.
 
+`NOTA_DATA_DIR` defaults to `./data` and contains the batch-job SQLite database
+plus uploaded Ogg files and window checkpoints. It must be persistent across
+service restarts. Docker Compose bind-mounts `./data` at `/app/data`.
+
+Clients delete jobs after committing results locally. Jobs that are not
+acknowledged are removed after `NOTA_BATCH_JOB_RETENTION_SECONDS` (24 hours by
+default). Monitor this directory for free space; never include it in ordinary
+application logs or backups that are not approved to contain meeting data.
+New uploads and queue admission fail with HTTP 507 before the server exhausts
+the space reserved for the recording and one processing window.
+
 User services normally start when that user logs in. A host administrator may
 enable lingering with `loginctl enable-linger <user>` when the service must
 start at boot before an interactive login.
@@ -62,3 +74,12 @@ workers duplicate model memory and do not share the in-process semaphore.
 The service streams uploads to disk, but the reverse proxy must also enforce a
 request body limit and timeout. Monitor free disk space in the configured temp
 filesystem.
+
+Nota batch uploads use 8 MiB PATCH requests, so proxy timeouts apply per upload
+chunk rather than to the entire meeting. Polling and result requests remain
+short. The job worker is process-local; run one Uvicorn process because multiple
+workers duplicate models and job schedulers.
+
+During graceful shutdown, the worker finishes and checkpoints its current
+bounded window before SQLite is closed. Startup requeues that job and skips all
+previously committed windows.

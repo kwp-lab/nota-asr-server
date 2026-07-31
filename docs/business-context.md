@@ -14,11 +14,15 @@ with timestamps and anonymous speaker labels.
 ## v0.1 Scope
 
 The first release accepts one completed audio file and returns one completed
-transcript. It is not a live transcription protocol.
+transcript. Nota may upload that file through the resumable `/v1/nota` job
+protocol, but inference begins only after the complete recording is available.
+It is not a live transcription protocol.
 
 This boundary matters for speaker diarization. Speaker ids are clustered over
-one uploaded recording. Sending independent chunks would reset clustering and
-could assign a different id to the same person in every chunk.
+one completed recording. Internal bounded processing windows retain private
+speaker centroids and are reconciled before one final response is published.
+Sending independent requests to the OpenAI-compatible endpoint still creates
+independent speaker scopes.
 
 ## Future Realtime Work
 
@@ -26,4 +30,3 @@ Realtime captions require a separate session-oriented WebSocket API with audio
 chunk sequencing, partial/final results, reconnect behavior, backpressure, and
 speaker embedding reconciliation across chunks. It must not be simulated by
 repeated calls to the batch endpoint.
-
