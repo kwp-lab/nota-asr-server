@@ -13,3 +13,6 @@ data/
 *.log
 sample.*
 benchmark-*.json
+
+# Local benchmark and hardware reports
+/report/
