@@ -6,14 +6,16 @@
 
 Nota ASR Server is the transcription service used by the Nota Windows meeting
 recorder. It exposes both an OpenAI-compatible transcription endpoint and a
-Nota-specific, resumable batch protocol. SenseVoice and Paraformer output is
-normalized into one stable response schema, with CAM++ speaker diarization.
+Nota-specific, resumable batch protocol. SenseVoice, Paraformer, and
+Fun-ASR-Nano output is normalized into one stable response schema, with CAM++
+speaker diarization.
 
 ## What Is Supported
 
 - Completed meeting recordings; realtime/streaming ASR is not in the current
   scope.
-- SenseVoice as the default model and Paraformer as a lazy-loaded alternative.
+- SenseVoice as the default model, with Paraformer and Fun-ASR-Nano available
+  through lazy loading.
 - Meeting-local speaker labels such as `speaker_0` and `speaker_1`.
 - Resumable Nota jobs whose upload and inference progress survives restarts.
 - `POST /v1/audio/transcriptions` with `json` and `verbose_json` responses.
@@ -112,7 +114,7 @@ The other defaults are sufficient for a first run:
 NOTA_PORT=8010
 NOTA_DEVICE=cpu
 NOTA_PRELOAD_MODEL=sensevoice
-NOTA_ENABLED_MODELS=sensevoice,paraformer
+NOTA_ENABLED_MODELS=sensevoice,paraformer,fun-asr-nano
 NOTA_MODEL_DIR=./models
 NOTA_DATA_DIR=./data
 NOTA_API_KEYS=
@@ -178,6 +180,33 @@ If `.env` contains `NOTA_API_KEYS=my-local-key`, add:
 ```
 
 to the `curl.exe` command.
+
+## Use Fun-ASR-Nano
+
+`fun-asr-nano` is enabled by default but is not loaded during startup while
+SenseVoice remains the preload model. Select it in Nota or send
+`model=fun-asr-nano` to either transcription API. The first request downloads
+the official, non-quantized `FunAudioLLM/Fun-ASR-Nano-2512` checkpoint, which
+requires more than 2 GB of model storage, and then loads it into memory.
+
+On a resource-constrained host, load only Nano by changing `.env` and
+restarting the service:
+
+```dotenv
+NOTA_ENABLED_MODELS=fun-asr-nano
+NOTA_PRELOAD_MODEL=fun-asr-nano
+```
+
+Nano supports explicit `zh`, `en`, `ja`, and `yue` language hints. With
+`language=auto`, Nano transcribes in the spoken language but does not expose a
+reliable language code, so the stable response reports `language: "und"`.
+Nano uses native punctuation and ITN, FSMN-VAD for segments up to 30 seconds,
+and CAM++ for the same meeting-wide speaker workflow as the other models.
+
+PyTorch CPU is the supported Nano baseline in this release. The existing XPU
+device path can be benchmarked experimentally, but is not a performance or
+compatibility guarantee for Nano. This integration does not use OpenVINO,
+vLLM, an NPU runtime, or quantized weights.
 
 ## Windows and Intel XPU
 
@@ -334,7 +363,7 @@ current working directory. Environment variables take precedence.
 | `NOTA_PORT` | `8010` | HTTP port. |
 | `NOTA_DEVICE` | `cpu` | FunASR/PyTorch device: `cpu`, or `xpu:0` with the XPU wheel. |
 | `NOTA_PRELOAD_MODEL` | `sensevoice` | Model loaded during startup. |
-| `NOTA_ENABLED_MODELS` | `sensevoice,paraformer` | Comma-separated API model aliases. |
+| `NOTA_ENABLED_MODELS` | `sensevoice,paraformer,fun-asr-nano` | Comma-separated API model aliases. |
 | `NOTA_MODEL_DIR` | `./models` | Downloaded model cache. |
 | `NOTA_DATA_DIR` | `./data` | SQLite jobs, uploaded Ogg files, and window checkpoints. |
 | `NOTA_API_KEYS` | empty | Comma-separated accepted Bearer tokens. Empty disables authentication. |
@@ -425,12 +454,20 @@ py -3.12 -m venv .venv-xpu
   --json-out .\benchmark-funasr-nano.json
 ```
 
-The benchmark's `fun-asr-nano` alias is only for hardware evaluation; it does
-not register Fun-ASR-Nano in the API server. This script measures the
-PyTorch/FunASR path, not OpenVINO. Add `--diarization` only when CAM++ should be
-included in the measured workload.
+The same `fun-asr-nano` alias is registered by the API server. The benchmark
+measures the PyTorch/FunASR path, not OpenVINO. Add `--diarization` only when
+CAM++ should be included in the measured workload. CPU is the supported Nano
+baseline; treat XPU results as host-specific experimental evidence.
 
 ## Troubleshooting
+
+### FunASR logs `Missing punc_model` while Nano still succeeds
+
+FunASR 1.3.30 can emit this misleading message when native-punctuation models
+use CAM++ in `vad_segment` mode. Fun-ASR-Nano intentionally does not load
+`ct-punc`; a successful response with timestamped speaker segments is valid.
+An actual missing-speaker or internal-centroid result fails the Nota job with
+`diarization_failed` instead of being silently accepted.
 
 ### `py -3.12` reports that no matching Python is installed
 

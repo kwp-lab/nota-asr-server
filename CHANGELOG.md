@@ -7,6 +7,19 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- Added lazy-loaded `fun-asr-nano` API support using the official
+  `FunAudioLLM/Fun-ASR-Nano-2512` PyTorch checkpoint, FSMN-VAD, CAM++, native
+  punctuation, ITN, timestamps, and meeting-wide speaker reconciliation.
+- Added model-specific language prompt mapping for Chinese, English, Japanese,
+  and Cantonese while reporting `und` for Nano automatic-language requests.
+
+### Changed
+
+- Advertised Fun-ASR-Nano in the default enabled model list while retaining
+  SenseVoice as the startup preload and default transcription model.
+
 ## [0.2.0] - 2026-07-31
 
 ### Added

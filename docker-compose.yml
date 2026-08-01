@@ -7,7 +7,7 @@ services:
     environment:
       NOTA_DEVICE: "${NOTA_DEVICE:-cpu}"
       NOTA_PRELOAD_MODEL: "${NOTA_PRELOAD_MODEL:-sensevoice}"
-      NOTA_ENABLED_MODELS: "${NOTA_ENABLED_MODELS:-sensevoice,paraformer}"
+      NOTA_ENABLED_MODELS: "${NOTA_ENABLED_MODELS:-sensevoice,paraformer,fun-asr-nano}"
       NOTA_MODEL_DIR: /app/models
       NOTA_DATA_DIR: /app/data
       NOTA_API_KEYS: "${NOTA_API_KEYS:-}"

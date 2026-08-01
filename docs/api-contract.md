@@ -10,7 +10,7 @@ The public base path is `/v1`. Nota clients should request
 | Field | Type | Required | Default | Meaning |
 |---|---|---:|---|---|
 | `file` | file | yes | - | Meeting audio |
-| `model` | string | no | configured default | `sensevoice` or `paraformer` |
+| `model` | string | no | configured default | `sensevoice`, `paraformer`, or `fun-asr-nano` |
 | `language` | string | no | `auto` | Language hint |
 | `response_format` | string | no | `json` | `json` or `verbose_json` |
 | `diarization` | boolean | no | `true` | Return speaker labels |
@@ -46,6 +46,8 @@ Contract rules:
 - Time values are seconds.
 - `duration` is media duration; `processing_time` is server inference time.
 - Language uses `zh`, `en`, `ja`, `ko`, `yue`, or `und` when undetermined.
+- Fun-ASR-Nano reports `und` for `language=auto` because the checkpoint does
+  not expose a reliable language code. Explicit supported hints are preserved.
 - Speaker ids are only stable within one response.
 - Speaker labels are diarization estimates, not verified speaker identities.
 - `speaker_count` is a clustering hint; invalid audio or too few usable speech

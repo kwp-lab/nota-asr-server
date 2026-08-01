@@ -7,7 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-SUPPORTED_MODELS = ("sensevoice", "paraformer")
+SUPPORTED_MODELS = ("sensevoice", "paraformer", "fun-asr-nano")
 
 
 def _env_int(name: str, default: int) -> int:

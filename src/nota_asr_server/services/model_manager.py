@@ -4,7 +4,11 @@ import os
 import threading
 from collections.abc import Callable
 
-from nota_asr_server.backends import ParaformerBackend, SenseVoiceBackend
+from nota_asr_server.backends import (
+    FunAsrNanoBackend,
+    ParaformerBackend,
+    SenseVoiceBackend,
+)
 from nota_asr_server.backends.base import ASRBackend, BackendResult, BackendWindowResult
 from nota_asr_server.config import Settings
 from nota_asr_server.errors import ModelLoadError, UnknownModelError
@@ -21,6 +25,7 @@ class ModelManager:
         self._factories: dict[str, BackendFactory] = {
             "sensevoice": SenseVoiceBackend,
             "paraformer": ParaformerBackend,
+            "fun-asr-nano": FunAsrNanoBackend,
         }
         self._backends: dict[str, ASRBackend] = {}
         self._load_errors: dict[str, str] = {}

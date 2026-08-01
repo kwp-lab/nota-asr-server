@@ -37,6 +37,13 @@ systemctl --user restart nota-asr-server
 Model startup can take tens of seconds after a cold download. Readiness must
 remain false until preload completes.
 
+SenseVoice remains the default preload model. `fun-asr-nano` is advertised but
+lazy-loaded; its first request downloads an official non-quantized checkpoint
+larger than 2 GB. Hosts with limited disk or memory should set both
+`NOTA_ENABLED_MODELS` and `NOTA_PRELOAD_MODEL` to `fun-asr-nano` when Nano is
+the only required backend, preventing SenseVoice and Nano from remaining
+resident together.
+
 ## Model Storage
 
 `NOTA_MODEL_DIR` defaults to `./models`. At startup the service passes its
@@ -70,6 +77,11 @@ start at boot before an interactive login.
 CPU inference defaults to one concurrent request. Queueing occurs inside one
 process. Scale only after measuring representative long meetings; multiple
 workers duplicate model memory and do not share the in-process semaphore.
+
+PyTorch CPU is the supported Fun-ASR-Nano baseline. A configured XPU device is
+experimental for Nano and must be benchmarked on the target Intel host; it
+must not be assumed to reduce latency. OpenVINO and NPU execution are not part
+of this runtime.
 
 The service streams uploads to disk, but the reverse proxy must also enforce a
 request body limit and timeout. Monitor free disk space in the configured temp

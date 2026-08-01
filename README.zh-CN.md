@@ -6,13 +6,13 @@
 
 Nota ASR Server 是为 Nota Windows 会议录音客户端提供语音转写能力的服务端。
 它同时提供兼容 OpenAI 的转写接口和 Nota 专用的可恢复批处理协议，并把
-SenseVoice、Paraformer 的输出统一为稳定的响应结构，同时使用 CAM++ 完成
-说话人分离。
+SenseVoice、Paraformer、Fun-ASR-Nano 的输出统一为稳定的响应结构，同时使用
+CAM++ 完成说话人分离。
 
 ## 当前支持范围
 
 - 转写已经录制完成的会议；当前版本不提供实时或流式 ASR。
-- 默认使用 SenseVoice，也可以按需加载 Paraformer。
+- 默认使用 SenseVoice，也可以按需加载 Paraformer 和 Fun-ASR-Nano。
 - 提供 `speaker_0`、`speaker_1` 这类会议内说话人标签。
 - Nota 任务支持断点续传，上传和推理进度可在服务重启后恢复。
 - 提供兼容 OpenAI 的 `POST /v1/audio/transcriptions` 接口，支持 `json`
@@ -108,7 +108,7 @@ NOTA_HOST=127.0.0.1
 NOTA_PORT=8010
 NOTA_DEVICE=cpu
 NOTA_PRELOAD_MODEL=sensevoice
-NOTA_ENABLED_MODELS=sensevoice,paraformer
+NOTA_ENABLED_MODELS=sensevoice,paraformer,fun-asr-nano
 NOTA_MODEL_DIR=./models
 NOTA_DATA_DIR=./data
 NOTA_API_KEYS=
@@ -171,6 +171,30 @@ curl.exe http://127.0.0.1:8010/v1/audio/transcriptions `
 ```powershell
 -H "Authorization: Bearer my-local-key"
 ```
+
+## 使用 Fun-ASR-Nano
+
+`fun-asr-nano` 默认启用，但 SenseVoice 仍是启动时预加载的模型，因此 Nano
+只会在 Nota 选择它或 API 请求传入 `model=fun-asr-nano` 后懒加载。第一次使用
+会下载官方、未量化的 `FunAudioLLM/Fun-ASR-Nano-2512` checkpoint，模型存储
+需要超过 2 GB，随后还会把模型加载到内存。
+
+在资源受限的主机上，可以修改 `.env`，只启用和预加载 Nano，然后重启服务：
+
+```dotenv
+NOTA_ENABLED_MODELS=fun-asr-nano
+NOTA_PRELOAD_MODEL=fun-asr-nano
+```
+
+Nano 支持显式的 `zh`、`en`、`ja` 和 `yue` 语言提示。使用
+`language=auto` 时，Nano 会按原始语音进行转写，但不返回可靠的语言代码，因此
+稳定响应中的 `language` 为 `"und"`。Nano 使用原生标点和 ITN，由 FSMN-VAD
+完成最长 30 秒的内部切段，并通过 CAM++ 进入与其他模型相同的整场会议说话人
+处理链路。
+
+本版本正式支持的 Nano 基线是 PyTorch CPU。现有 XPU 设备路径可以用于实验性
+基准，但不构成 Nano 的性能或兼容性承诺。本次集成不使用 OpenVINO、vLLM、NPU
+运行时或量化权重。
 
 ## Windows + Intel XPU
 
@@ -319,7 +343,7 @@ docker compose up --build
 | `NOTA_PORT` | `8010` | HTTP 端口。 |
 | `NOTA_DEVICE` | `cpu` | FunASR/PyTorch 设备；CPU 使用 `cpu`，XPU 版使用 `xpu:0`。 |
 | `NOTA_PRELOAD_MODEL` | `sensevoice` | 服务启动时预加载的模型。 |
-| `NOTA_ENABLED_MODELS` | `sensevoice,paraformer` | API 启用的模型别名，使用英文逗号分隔。 |
+| `NOTA_ENABLED_MODELS` | `sensevoice,paraformer,fun-asr-nano` | API 启用的模型别名，使用英文逗号分隔。 |
 | `NOTA_MODEL_DIR` | `./models` | 下载模型的缓存目录。 |
 | `NOTA_DATA_DIR` | `./data` | 任务 SQLite、上传的 Ogg 和窗口检查点。 |
 | `NOTA_API_KEYS` | 空 | 接受的 Bearer Token，使用英文逗号分隔；留空表示关闭认证。 |
@@ -407,11 +431,19 @@ py -3.12 -m venv .venv-xpu
   --json-out .\benchmark-funasr-nano.json
 ```
 
-基准脚本中的 `fun-asr-nano` 别名只用于硬件评估，不代表 API 服务已经注册
-Fun-ASR-Nano。这个脚本衡量的是 PyTorch/FunASR 路径，而不是 OpenVINO。
-只有在希望把 CAM++ 也计入工作负载时才添加 `--diarization`。
+API 服务和基准脚本使用同一个 `fun-asr-nano` 别名。这个脚本衡量的是
+PyTorch/FunASR 路径，而不是 OpenVINO。只有在希望把 CAM++ 也计入工作负载时
+才添加 `--diarization`。CPU 是本版本正式支持的 Nano 基线，XPU 结果应视为
+当前主机上的实验性证据。
 
 ## 常见问题
+
+### Nano 成功返回，但 FunASR 输出 `Missing punc_model`
+
+FunASR 1.3.30 在原生标点模型通过 `vad_segment` 使用 CAM++ 时，可能输出这条
+容易误解的日志。Fun-ASR-Nano 按设计不加载 `ct-punc`；只要成功响应包含带时间戳
+的 speaker 分段，结果就是有效的。真正缺少说话人结果或内部 centroid 时，Nota
+任务会以 `diarization_failed` 失败，不会静默接受不可靠结果。
 
 ### `py -3.12` 提示没有安装对应的 Python
 

@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from nota_asr_server.backends.base import BackendResult, BackendSegment
@@ -30,7 +31,18 @@ class FakeModelManager:
                     "diarization": True,
                     "decoder_hotwords": False,
                 },
-            }
+            },
+            {
+                "id": "fun-asr-nano",
+                "object": "model",
+                "owned_by": "nota",
+                "ready": False,
+                "capabilities": {
+                    "languages": ["zh", "en", "ja", "yue"],
+                    "diarization": True,
+                    "decoder_hotwords": False,
+                },
+            },
         ]
 
     def transcribe(
@@ -69,14 +81,16 @@ def make_client(*, api_keys=()):
     return TestClient(create_app(settings=settings, model_manager=manager)), manager
 
 
-def test_verbose_json_contract_and_temp_file_cleanup():
+@pytest.mark.parametrize("model", ["sensevoice", "fun-asr-nano"])
+def test_verbose_json_contract_and_temp_file_cleanup(model):
     client, manager = make_client()
     with client:
         response = client.post(
             "/v1/audio/transcriptions",
             files={"file": ("meeting.wav", b"not-real-audio", "audio/wav")},
             data={
-                "model": "sensevoice",
+                "model": model,
+                "language": "zh",
                 "response_format": "verbose_json",
                 "diarization": "true",
             },
@@ -87,7 +101,7 @@ def test_verbose_json_contract_and_temp_file_cleanup():
     assert response.json() == {
         "schema_version": "1.0",
         "task": "transcribe",
-        "model": "sensevoice",
+        "model": model,
         "language": "zh",
         "duration": 9.25,
         "processing_time": 0.44,
@@ -132,6 +146,21 @@ def test_api_key_boundary():
     assert accepted.status_code == 200
 
 
+def test_models_endpoint_advertises_nano_capabilities():
+    client, _ = make_client()
+    with client:
+        response = client.get("/v1/models")
+
+    assert response.status_code == 200
+    models = {item["id"]: item for item in response.json()["data"]}
+    assert models["fun-asr-nano"]["ready"] is False
+    assert models["fun-asr-nano"]["capabilities"] == {
+        "languages": ["zh", "en", "ja", "yue"],
+        "diarization": True,
+        "decoder_hotwords": False,
+    }
+
+
 def test_errors_use_the_stable_envelope():
     client, _ = make_client()
     with client:
@@ -170,4 +199,3 @@ def test_unsupported_extension_is_rejected_before_inference():
 
     assert response.status_code == 415
     assert response.json()["error"]["code"] == "unsupported_audio"
-

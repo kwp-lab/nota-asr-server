@@ -50,3 +50,11 @@ def test_batch_window_overlap_must_be_smaller_than_window():
 
 def test_default_meeting_limit_is_four_hours():
     assert Settings().max_audio_seconds == 4 * 60 * 60
+
+
+def test_nano_is_enabled_by_default():
+    assert Settings().enabled_models == (
+        "sensevoice",
+        "paraformer",
+        "fun-asr-nano",
+    )

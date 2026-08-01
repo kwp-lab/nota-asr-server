@@ -82,8 +82,7 @@ class FunASRBackend(ASRBackend):
                 "return_time_stamps": True,
             }
         )
-        if self.accepts_language_hint:
-            generate_kwargs["language"] = language or "auto"
+        self._apply_language_hint(generate_kwargs, language)
         if diarization and speaker_count is not None:
             generate_kwargs["preset_spk_num"] = speaker_count
 
@@ -99,6 +98,20 @@ class FunASRBackend(ASRBackend):
             processing_time=elapsed,
             diarization=diarization,
         )
+
+    def _model_language_hint(self, language: str) -> str | None:
+        return language or "auto"
+
+    def _apply_language_hint(
+        self,
+        generate_kwargs: dict[str, Any],
+        language: str,
+    ) -> None:
+        if not self.accepts_language_hint:
+            return
+        model_language = self._model_language_hint(language)
+        if model_language is not None:
+            generate_kwargs["language"] = model_language
 
     def transcribe_window(
         self,
@@ -120,8 +133,7 @@ class FunASRBackend(ASRBackend):
                 "return_time_stamps": True,
             }
         )
-        if self.accepts_language_hint:
-            generate_kwargs["language"] = language or "auto"
+        self._apply_language_hint(generate_kwargs, language)
 
         with self._inference_lock:
             started = time.perf_counter()

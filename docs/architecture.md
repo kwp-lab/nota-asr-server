@@ -9,7 +9,7 @@ Windows client
     -> media duration probe and policy validation after upload completion
     -> bounded five-minute 16 kHz processing windows
     -> ModelManager concurrency gate
-    -> SenseVoiceBackend or ParaformerBackend
+    -> SenseVoiceBackend, ParaformerBackend, or FunAsrNanoBackend
     -> FunASR AutoModel + FSMN-VAD + CAM++ speaker centroids
     -> meeting-wide centroid clustering and overlap merge
     -> model-independent normalizer
@@ -24,7 +24,7 @@ Windows client
 - The batch job service owns SQLite durability, sequential upload offsets,
   restart recovery, cancellation, processing windows, and final assembly.
 - ModelManager owns allowlisting, lazy loading, and inference concurrency.
-- Backends own FunASR model configuration.
+- Backends own FunASR model configuration and model-specific language hints.
 - The model manager maps `NOTA_MODEL_DIR` to ModelScope's process-wide cache
   before any FunASR model is loaded.
 - The short-recording cluster adapter owns the FunASR `<20` embedding
@@ -33,6 +33,10 @@ Windows client
 - Pydantic schemas are the executable API contract.
 
 Raw FunASR dictionaries must not cross the normalization boundary.
+
+Fun-ASR-Nano uses the same bounded job and speaker pipeline. FSMN-VAD keeps
+Nano inputs at no more than 30 seconds, Nano emits text and timestamps, and
+CAM++ emits the private centroids consumed by meeting-wide finalization.
 
 The OpenAI-compatible endpoint retains its original synchronous temporary-file
 flow. The `/v1/nota` job API is additive and returns the same

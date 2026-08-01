@@ -7,6 +7,7 @@ from collections import namedtuple
 from pathlib import Path
 
 import numpy as np
+import pytest
 import soundfile as sf
 from fastapi.testclient import TestClient
 
@@ -91,12 +92,12 @@ def ogg_bytes(tmp_path: Path, *, seconds: float = 0.2) -> bytes:
     return path.read_bytes()
 
 
-def create_payload(size: int) -> dict:
+def create_payload(size: int, *, model: str = "sensevoice") -> dict:
     return {
         "file_name": "meeting.ogg",
         "content_type": "audio/ogg",
         "size_bytes": size,
-        "model": "sensevoice",
+        "model": model,
         "language": "auto",
         "response_format": "verbose_json",
         "diarization": True,
@@ -113,7 +114,8 @@ def wait_for_state(client: TestClient, job_id: str, expected: str) -> dict:
     raise AssertionError(f"job {job_id} did not reach {expected}: {body}")
 
 
-def test_resumable_batch_protocol_returns_existing_verbose_schema(tmp_path):
+@pytest.mark.parametrize("model", ["sensevoice", "fun-asr-nano"])
+def test_resumable_batch_protocol_returns_existing_verbose_schema(tmp_path, model):
     audio = ogg_bytes(tmp_path)
     app = create_app(
         settings=settings(tmp_path),
@@ -127,12 +129,12 @@ def test_resumable_batch_protocol_returns_existing_verbose_schema(tmp_path):
         first = client.post(
             "/v1/nota/transcription-jobs",
             headers={"Idempotency-Key": "recording-1-generation-1"},
-            json=create_payload(len(audio)),
+            json=create_payload(len(audio), model=model),
         )
         repeated = client.post(
             "/v1/nota/transcription-jobs",
             headers={"Idempotency-Key": "recording-1-generation-1"},
-            json=create_payload(len(audio)),
+            json=create_payload(len(audio), model=model),
         )
         assert first.status_code == 201
         assert repeated.json()["id"] == first.json()["id"]
@@ -162,7 +164,7 @@ def test_resumable_batch_protocol_returns_existing_verbose_schema(tmp_path):
         assert result.json() == {
             "schema_version": "1.0",
             "task": "transcribe",
-            "model": "sensevoice",
+            "model": model,
             "language": "zh",
             "duration": result.json()["duration"],
             "processing_time": 0.25,
@@ -456,6 +458,7 @@ def test_jobs_are_scoped_to_authenticated_principal(tmp_path):
 def test_global_clustering_reconciles_swapped_local_labels(tmp_path):
     class ClusterManager(FakeBatchModelManager):
         def cluster_speaker_centers(self, model, centers, *, speaker_count):
+            assert model == "fun-asr-nano"
             assert centers == ((1.0, 0.0), (0.0, 1.0), (0.0, 1.0), (1.0, 0.0))
             time.sleep(0.01)
             return (7, 9, 9, 7)
@@ -472,7 +475,7 @@ def test_global_clustering_reconciles_swapped_local_labels(tmp_path):
             content_type="audio/ogg",
             upload_length=100,
             upload_offset=100,
-            model="sensevoice",
+            model="fun-asr-nano",
             language="auto",
             diarization=True,
             speaker_count=None,

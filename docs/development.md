@@ -15,6 +15,13 @@ pytest --cov=nota_asr_server
 Contract and API tests use fake backends and must not download models. Real
 model smoke tests are operational checks and run separately.
 
+For a Fun-ASR-Nano CPU smoke check, start a server configured with
+`NOTA_PRELOAD_MODEL=fun-asr-nano`, submit an untracked sample with
+`model=fun-asr-nano`, `response_format=verbose_json`, and `diarization=true`,
+then verify non-empty text, timestamped segments, and speaker labels. Use a
+controlled untracked two-speaker recording for meeting-wide validation. Never
+commit the recording or transcript.
+
 Copy `.env.example` to `.env` before starting the server. The local `.env` is
 not committed because it may contain API keys; non-secret defaults remain in
 the tracked example. Relative `NOTA_MODEL_DIR` paths are resolved from the

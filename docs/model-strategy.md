@@ -28,6 +28,29 @@ Both adapters use `spk_mode=vad_segment`. This reduces model-specific sentence
 boundary differences, but clients must still treat segment boundaries as
 implementation details.
 
+## Fun-ASR-Nano Option
+
+The `fun-asr-nano` alias lazily loads the official, non-quantized
+`FunAudioLLM/Fun-ASR-Nano-2512` checkpoint together with:
+
+- `fsmn-vad`, limited to 30-second speech segments.
+- `cam++` with `spk_mode=vad_segment`.
+
+Nano emits punctuation and inverse text normalization natively, so its
+pipeline does not load `ct-punc`. The locked FunASR 1.3.30 implementation
+converts Nano's dictionary-shaped character timestamps for the shared VAD and
+speaker pipeline and can return `spk_embedding_center`.
+
+Explicit `zh`, `en`, `ja`, and `yue` API hints are translated to model prompt
+names. An `auto` request omits the prompt language so Nano transcribes the
+spoken language, but the public result is `und` because Nano does not return a
+reliable language code. Nota does not guess from the transcript or run an
+additional language model.
+
+PyTorch CPU is the supported deployment baseline. PyTorch XPU remains an
+experimental device choice for Nano, and this backend does not use OpenVINO,
+vLLM, an NPU runtime, remote model code, or quantized weights.
+
 ## Speaker Diarization
 
 CAM++ creates an embedding for each overlapping 1.5-second speech chunk. FunASR
@@ -58,13 +81,16 @@ escape in the final response.
 
 ## Stable Output
 
-SenseVoice and Paraformer raw results are not schema-compatible. The normalizer
-maps `text`/`sentence`, millisecond timestamps, rich tags, and numeric speaker
-labels to the contract in `api-contract.md`.
+SenseVoice, Paraformer, and Fun-ASR-Nano raw results are not
+schema-compatible. The normalizer maps `text`/`sentence`, millisecond
+timestamps, rich tags, and numeric speaker labels to the contract in
+`api-contract.md`.
 
 ## Hotwords
 
-SenseVoice does not provide decoder-level hotword biasing. This release does
-not expose a hotword request field, avoiding a parameter that silently behaves
-differently by model. A future design must explicitly choose decoder biasing,
-audited post-processing, or a capability error per model.
+SenseVoice does not provide decoder-level hotword biasing. Nano accepts
+prompt-based context, but that behavior is not equivalent to Paraformer's
+decoder biasing. This release does not expose a hotword request field, avoiding
+a parameter that silently behaves differently by model. A future design must
+explicitly choose decoder biasing, prompt context, audited post-processing, or
+a capability error per model.
