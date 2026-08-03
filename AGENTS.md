@@ -13,4 +13,10 @@ Non-negotiable constraints:
 - The batch upload API is not a realtime streaming API.
 - Add or update contract tests when changing schemas or normalization behavior.
 - Update the relevant document and ADR when changing an architectural decision.
-
+- When a change introduces complex business logic, cross-component ownership,
+  three or more dependent stages, or a non-trivial state transition, add or
+  update a Mermaid diagram in the owning specification under `docs/`.
+- Keep diagrams version-controlled and update them with the behavior. Use
+  flowcharts for processing flows, sequence diagrams for request/response
+  interactions, and state diagrams for lifecycles. Diagrams complement concise
+  prose and executable tests; they do not replace either.

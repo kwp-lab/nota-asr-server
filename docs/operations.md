@@ -6,6 +6,10 @@
 - `/ready` proves the preloaded model is ready.
 - `/v1/models` lists enabled aliases and readiness.
 - `/v1/nota/capabilities` advertises the durable batch protocol and limits.
+- `/v1/nota/speaker-embeddings` performs authenticated, stateless CAM++
+  extraction for a bounded client-prepared WAV sample.
+- `/v1/nota/speaker-samples/analyze` performs authenticated, stateless CAM++
+  purity filtering across bounded candidate WAV samples.
 - `/docs` exposes Swagger UI.
 
 ## systemd

@@ -354,6 +354,9 @@ docker compose up --build
 | `NOTA_BATCH_WINDOW_SECONDS` | `300` | 内部推理窗口：5 分钟。 |
 | `NOTA_BATCH_WINDOW_OVERLAP_SECONDS` | `2` | 合并相邻窗口时使用的重叠长度。 |
 | `NOTA_BATCH_JOB_RETENTION_SECONDS` | `86400` | 未确认任务的保留时间：24 小时。 |
+| `NOTA_SPEAKER_EMBEDDING_MAX_BYTES` | `2097152` | 说话人识别单个语音样本的最大上传大小：2 MiB。 |
+| `NOTA_SPEAKER_EMBEDDING_MIN_SECONDS` | `5` | 可提取声纹的最短语音时长。 |
+| `NOTA_SPEAKER_EMBEDDING_MAX_SECONDS` | `30` | 单个声纹样本的最长时长。 |
 | `NOTA_TEMP_DIR` | 系统默认值 | 兼容接口使用的临时目录。 |
 | `NOTA_LOG_LEVEL` | `INFO` | Python/Uvicorn 日志级别。 |
 

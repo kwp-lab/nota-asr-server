@@ -21,6 +21,12 @@ and window payloads from reusable database pages and the active write-ahead log.
 Job identifiers are random and authorization failures do not reveal whether a
 job exists for another key.
 
+Speaker-embedding requests use the same Bearer boundary. Their temporary WAV
+is deleted in a `finally` path after success or failure, and vectors are never
+written to server persistence. Routes accept no person name or client-side
+participant identifier. Audio bytes and embedding values must not appear in
+technical logs.
+
 The application is not a multi-tenant authorization system. Deploy separate
 instances or add tenant-aware storage, quotas, audit logs, and key ownership
 before serving unrelated organizations.

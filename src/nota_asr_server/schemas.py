@@ -78,10 +78,50 @@ class ErrorEnvelope(StrictModel):
 
 class BatchCapabilities(StrictModel):
     batch_transcription_version: Literal["1"] = "1"
+    speaker_embedding_version: Literal["1"] = "1"
+    speaker_sample_analysis_version: Literal["1"] = "1"
     upload_chunk_bytes: int = Field(gt=0)
     max_upload_bytes: int = Field(gt=0)
     max_audio_seconds: int = Field(gt=0)
     audio_formats: list[Literal["ogg"]]
+    speaker_embedding_max_bytes: int = Field(gt=0)
+    speaker_embedding_min_seconds: int = Field(gt=0)
+    speaker_embedding_max_seconds: int = Field(gt=0)
+    speaker_sample_analysis_max_files: int = Field(gt=0)
+    speaker_sample_analysis_min_clip_seconds: int = Field(gt=0)
+    speaker_sample_analysis_max_clip_seconds: int = Field(gt=0)
+    speaker_sample_analysis_max_total_seconds: int = Field(gt=0)
+    speaker_sample_analysis_min_accepted_seconds: int = Field(gt=0)
+    speaker_sample_analysis_min_purity: float = Field(gt=0, le=1)
+
+
+class SpeakerEmbeddingResponse(StrictModel):
+    schema_version: Literal["1"] = "1"
+    embedding_model: Literal["cam++"] = "cam++"
+    embedding_fingerprint: str
+    dimension: int = Field(gt=0)
+    audio_duration: float = Field(gt=0)
+    embedding: list[float] = Field(min_length=1)
+
+
+class CleanSpeakerSampleRange(StrictModel):
+    file_index: int = Field(ge=0)
+    start: float = Field(ge=0)
+    end: float = Field(gt=0)
+
+
+class SpeakerSampleAnalysisResponse(StrictModel):
+    schema_version: Literal["1"] = "1"
+    outcome: Literal["enrollable", "preview_only"]
+    embedding_model: Literal["cam++"] = "cam++"
+    embedding_fingerprint: str
+    dimension: int = Field(ge=0)
+    audio_duration: float = Field(gt=0)
+    accepted_audio_duration: float = Field(ge=0)
+    purity_score: float = Field(ge=0, le=1)
+    preview: CleanSpeakerSampleRange
+    accepted_ranges: list[CleanSpeakerSampleRange]
+    embedding: list[float] | None
 
 
 class CreateTranscriptionJob(StrictModel):

@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from nota_asr_server import __version__
 from nota_asr_server.api.batch_routes import router as batch_router
 from nota_asr_server.api.routes import router
+from nota_asr_server.api.speaker_routes import router as speaker_router
 from nota_asr_server.config import Settings
 from nota_asr_server.errors import APIError
 from nota_asr_server.schemas import ErrorDetail, ErrorEnvelope
@@ -129,6 +130,7 @@ def create_app(
 
     app.include_router(router)
     app.include_router(batch_router)
+    app.include_router(speaker_router)
     return app
 
 

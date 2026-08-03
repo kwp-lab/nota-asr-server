@@ -6,6 +6,14 @@ from fastapi import APIRouter, Depends, Header, Request, Response
 from fastapi.concurrency import run_in_threadpool
 
 from nota_asr_server.auth import require_api_key
+from nota_asr_server.backends.speaker_embedding import (
+    SPEAKER_SAMPLE_ANALYSIS_MAX_CLIP_SECONDS,
+    SPEAKER_SAMPLE_ANALYSIS_MAX_FILES,
+    SPEAKER_SAMPLE_ANALYSIS_MAX_TOTAL_SECONDS,
+    SPEAKER_SAMPLE_ANALYSIS_MIN_CLIP_SECONDS,
+    SPEAKER_SAMPLE_MIN_ACCEPTED_SECONDS,
+    SPEAKER_SAMPLE_MIN_PURITY,
+)
 from nota_asr_server.errors import APIError
 from nota_asr_server.schemas import (
     BatchCapabilities,
@@ -27,6 +35,23 @@ async def capabilities(request: Request, _principal: Principal) -> BatchCapabili
         max_upload_bytes=settings.max_upload_bytes,
         max_audio_seconds=settings.max_audio_seconds,
         audio_formats=["ogg"],
+        speaker_embedding_max_bytes=settings.speaker_embedding_max_bytes,
+        speaker_embedding_min_seconds=settings.speaker_embedding_min_seconds,
+        speaker_embedding_max_seconds=settings.speaker_embedding_max_seconds,
+        speaker_sample_analysis_max_files=SPEAKER_SAMPLE_ANALYSIS_MAX_FILES,
+        speaker_sample_analysis_min_clip_seconds=(
+            SPEAKER_SAMPLE_ANALYSIS_MIN_CLIP_SECONDS
+        ),
+        speaker_sample_analysis_max_clip_seconds=(
+            SPEAKER_SAMPLE_ANALYSIS_MAX_CLIP_SECONDS
+        ),
+        speaker_sample_analysis_max_total_seconds=(
+            SPEAKER_SAMPLE_ANALYSIS_MAX_TOTAL_SECONDS
+        ),
+        speaker_sample_analysis_min_accepted_seconds=(
+            SPEAKER_SAMPLE_MIN_ACCEPTED_SECONDS
+        ),
+        speaker_sample_analysis_min_purity=SPEAKER_SAMPLE_MIN_PURITY,
     )
 
 

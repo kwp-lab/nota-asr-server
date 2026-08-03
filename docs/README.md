@@ -11,7 +11,10 @@ Read the documents in this order:
 6. [`operations.md`](operations.md): deployment, health checks, logs, and recovery.
 7. [`security.md`](security.md): trust boundary and production hardening.
 8. [`decisions/`](decisions): architectural decision records.
+9. [`speaker-embeddings.md`](speaker-embeddings.md): stateless CAM++ extraction
+   for client-local speaker identification.
+10. [`decisions/0008-clean-speaker-sample-analysis.md`](decisions/0008-clean-speaker-sample-analysis.md):
+    why enrollment purity is analyzed independently from transcription output.
 
 When behavior changes, update code, tests, and the corresponding document in
 the same change.
-

@@ -374,6 +374,9 @@ current working directory. Environment variables take precedence.
 | `NOTA_BATCH_WINDOW_SECONDS` | `300` | Internal inference window: 5 minutes. |
 | `NOTA_BATCH_WINDOW_OVERLAP_SECONDS` | `2` | Overlap used to merge adjacent windows. |
 | `NOTA_BATCH_JOB_RETENTION_SECONDS` | `86400` | Unacknowledged job retention: 24 hours. |
+| `NOTA_SPEAKER_EMBEDDING_MAX_BYTES` | `2097152` | Maximum post-transcription voice sample upload: 2 MiB. |
+| `NOTA_SPEAKER_EMBEDDING_MIN_SECONDS` | `5` | Minimum usable voice sample duration. |
+| `NOTA_SPEAKER_EMBEDDING_MAX_SECONDS` | `30` | Maximum voice sample duration. |
 | `NOTA_TEMP_DIR` | system default | Temporary directory for the compatible endpoint. |
 | `NOTA_LOG_LEVEL` | `INFO` | Python/Uvicorn log level. |
 
