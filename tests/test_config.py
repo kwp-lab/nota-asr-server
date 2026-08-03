@@ -58,3 +58,13 @@ def test_nano_is_enabled_by_default():
         "paraformer",
         "fun-asr-nano",
     )
+
+
+def test_speaker_embedding_limits_must_form_a_positive_range():
+    with pytest.raises(ValueError, match="NOTA_SPEAKER_EMBEDDING_MIN_SECONDS"):
+        Settings(speaker_embedding_min_seconds=0).validate()
+    with pytest.raises(ValueError, match="NOTA_SPEAKER_EMBEDDING_MAX_SECONDS"):
+        Settings(
+            speaker_embedding_min_seconds=30,
+            speaker_embedding_max_seconds=30,
+        ).validate()

@@ -51,6 +51,9 @@ class Settings:
     batch_window_seconds: int = 5 * 60
     batch_window_overlap_seconds: int = 2
     batch_job_retention_seconds: int = 24 * 60 * 60
+    speaker_embedding_max_bytes: int = 2 * 1024 * 1024
+    speaker_embedding_min_seconds: int = 5
+    speaker_embedding_max_seconds: int = 30
     temp_dir: str | None = None
     log_level: str = "INFO"
 
@@ -84,6 +87,18 @@ class Settings:
             batch_job_retention_seconds=_env_int(
                 "NOTA_BATCH_JOB_RETENTION_SECONDS",
                 cls.batch_job_retention_seconds,
+            ),
+            speaker_embedding_max_bytes=_env_int(
+                "NOTA_SPEAKER_EMBEDDING_MAX_BYTES",
+                cls.speaker_embedding_max_bytes,
+            ),
+            speaker_embedding_min_seconds=_env_int(
+                "NOTA_SPEAKER_EMBEDDING_MIN_SECONDS",
+                cls.speaker_embedding_min_seconds,
+            ),
+            speaker_embedding_max_seconds=_env_int(
+                "NOTA_SPEAKER_EMBEDDING_MAX_SECONDS",
+                cls.speaker_embedding_max_seconds,
             ),
             temp_dir=os.getenv("NOTA_TEMP_DIR") or None,
             log_level=os.getenv("NOTA_LOG_LEVEL", cls.log_level).upper(),
@@ -120,3 +135,12 @@ class Settings:
             )
         if self.batch_job_retention_seconds <= 0:
             raise ValueError("NOTA_BATCH_JOB_RETENTION_SECONDS must be positive")
+        if self.speaker_embedding_max_bytes <= 0:
+            raise ValueError("NOTA_SPEAKER_EMBEDDING_MAX_BYTES must be positive")
+        if self.speaker_embedding_min_seconds <= 0:
+            raise ValueError("NOTA_SPEAKER_EMBEDDING_MIN_SECONDS must be positive")
+        if self.speaker_embedding_max_seconds <= self.speaker_embedding_min_seconds:
+            raise ValueError(
+                "NOTA_SPEAKER_EMBEDDING_MAX_SECONDS must be greater than "
+                "NOTA_SPEAKER_EMBEDDING_MIN_SECONDS"
+            )

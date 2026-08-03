@@ -27,6 +27,9 @@ async def capabilities(request: Request, _principal: Principal) -> BatchCapabili
         max_upload_bytes=settings.max_upload_bytes,
         max_audio_seconds=settings.max_audio_seconds,
         audio_formats=["ogg"],
+        speaker_embedding_max_bytes=settings.speaker_embedding_max_bytes,
+        speaker_embedding_min_seconds=settings.speaker_embedding_min_seconds,
+        speaker_embedding_max_seconds=settings.speaker_embedding_max_seconds,
     )
 
 

@@ -31,6 +31,9 @@ Windows client
   compatibility behavior documented in `model-strategy.md`.
 - Normalization owns the public response semantics.
 - Pydantic schemas are the executable API contract.
+- The speaker-embedding backend owns lazy CAM++ loading and normalized vector
+  extraction. Its route owns strict WAV validation and request-scoped cleanup;
+  it is independent of transcription and durable job state.
 
 Raw FunASR dictionaries must not cross the normalization boundary.
 
@@ -41,6 +44,11 @@ CAM++ emits the private centroids consumed by meeting-wide finalization.
 The OpenAI-compatible endpoint retains its original synchronous temporary-file
 flow. The `/v1/nota` job API is additive and returns the same
 `VerboseTranscription` schema only from its final result endpoint.
+
+`POST /v1/nota/speaker-embeddings` is a second additive flow. It passes one
+bounded, validated voice sample through the same process-wide inference gate,
+returns an anonymous L2-normalized CAM++ vector, and deletes the upload. It
+does not read or write the batch-job database.
 
 ## Concurrency
 

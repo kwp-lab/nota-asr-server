@@ -76,6 +76,29 @@ The server rejects job creation or completion with
 `error.code=insufficient_storage` and HTTP 507 when the persistent data
 directory cannot safely hold the upload or the bounded processing workspace.
 
+## Nota Speaker Embedding Extension
+
+Clients discover `speaker_embedding_version=1` at
+`GET /v1/nota/capabilities`. `POST /v1/nota/speaker-embeddings` accepts an
+authenticated multipart request with one `file` field. The file must be a
+16 kHz mono PCM16 WAV within the advertised byte and duration limits.
+
+```json
+{
+  "schema_version": "1",
+  "embedding_model": "cam++",
+  "embedding_fingerprint": "cam++:iic/speech_campplus_sv_zh-cn_16k-common:v1",
+  "dimension": 192,
+  "audio_duration": 18.4,
+  "embedding": [0.012, -0.034]
+}
+```
+
+The shown vector is abbreviated. The returned vector is L2-normalized. The
+server deletes the temporary audio after the response and does not associate
+the vector with a name, meeting, or persistent identity. Clients must compare
+vectors only when both `embedding_fingerprint` and `dimension` match.
+
 ## Error Response
 
 All application and validation errors use:

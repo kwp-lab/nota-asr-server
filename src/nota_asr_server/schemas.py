@@ -78,10 +78,23 @@ class ErrorEnvelope(StrictModel):
 
 class BatchCapabilities(StrictModel):
     batch_transcription_version: Literal["1"] = "1"
+    speaker_embedding_version: Literal["1"] = "1"
     upload_chunk_bytes: int = Field(gt=0)
     max_upload_bytes: int = Field(gt=0)
     max_audio_seconds: int = Field(gt=0)
     audio_formats: list[Literal["ogg"]]
+    speaker_embedding_max_bytes: int = Field(gt=0)
+    speaker_embedding_min_seconds: int = Field(gt=0)
+    speaker_embedding_max_seconds: int = Field(gt=0)
+
+
+class SpeakerEmbeddingResponse(StrictModel):
+    schema_version: Literal["1"] = "1"
+    embedding_model: Literal["cam++"] = "cam++"
+    embedding_fingerprint: str
+    dimension: int = Field(gt=0)
+    audio_duration: float = Field(gt=0)
+    embedding: list[float] = Field(min_length=1)
 
 
 class CreateTranscriptionJob(StrictModel):

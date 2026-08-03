@@ -1,3 +1,5 @@
+import io
+import wave
 from pathlib import Path
 
 import pytest
@@ -15,6 +17,7 @@ class FakeModelManager:
         self.loaded_models = ["sensevoice"]
         self.readiness_detail = None
         self.captured_path: str | None = None
+        self.captured_embedding_path: str | None = None
 
     def preload(self):
         return None
@@ -45,6 +48,11 @@ class FakeModelManager:
             },
         ]
 
+    def extract_speaker_embedding(self, audio_path):
+        self.captured_embedding_path = audio_path
+        assert Path(audio_path).exists()
+        return (0.6, 0.8)
+
     def transcribe(
         self,
         model,
@@ -73,6 +81,16 @@ class FakeModelManager:
                 ),
             ),
         )
+
+
+def make_pcm16_wav(seconds=5, *, sample_rate=16_000, channels=1):
+    output = io.BytesIO()
+    with wave.open(output, "wb") as wav:
+        wav.setnchannels(channels)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+        wav.writeframes(b"\x00\x00" * sample_rate * seconds * channels)
+    return output.getvalue()
 
 
 def make_client(*, api_keys=()):
@@ -199,3 +217,85 @@ def test_unsupported_extension_is_rejected_before_inference():
 
     assert response.status_code == 415
     assert response.json()["error"]["code"] == "unsupported_audio"
+
+
+def test_nota_capabilities_advertise_speaker_embedding_contract():
+    client, _ = make_client()
+    with client:
+        response = client.get("/v1/nota/capabilities")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["speaker_embedding_version"] == "1"
+    assert body["speaker_embedding_min_seconds"] == 5
+    assert body["speaker_embedding_max_seconds"] == 30
+    assert body["speaker_embedding_max_bytes"] == 2 * 1024 * 1024
+
+
+def test_speaker_embedding_contract_and_temp_file_cleanup():
+    client, manager = make_client()
+    with client:
+        response = client.post(
+            "/v1/nota/speaker-embeddings",
+            files={"file": ("speaker.wav", make_pcm16_wav(), "audio/wav")},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body == {
+        "schema_version": "1",
+        "embedding_model": "cam++",
+        "embedding_fingerprint": (
+            "cam++:iic/speech_campplus_sv_zh-cn_16k-common:v1"
+        ),
+        "dimension": 2,
+        "audio_duration": 5.0,
+        "embedding": [0.6, 0.8],
+    }
+    assert manager.captured_embedding_path is not None
+    assert not Path(manager.captured_embedding_path).exists()
+
+
+@pytest.mark.parametrize(
+    ("seconds", "sample_rate", "channels", "expected_code"),
+    [
+        (4, 16_000, 1, "voice_sample_too_short"),
+        (5, 8_000, 1, "invalid_voice_sample"),
+        (5, 16_000, 2, "invalid_voice_sample"),
+    ],
+)
+def test_speaker_embedding_rejects_invalid_samples(
+    seconds, sample_rate, channels, expected_code
+):
+    client, manager = make_client()
+    audio = make_pcm16_wav(
+        seconds,
+        sample_rate=sample_rate,
+        channels=channels,
+    )
+    with client:
+        response = client.post(
+            "/v1/nota/speaker-embeddings",
+            files={"file": ("speaker.wav", audio, "audio/wav")},
+        )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == expected_code
+    assert manager.captured_embedding_path is None
+
+
+def test_speaker_embedding_requires_api_key():
+    client, _ = make_client(api_keys=("secret-key",))
+    with client:
+        rejected = client.post(
+            "/v1/nota/speaker-embeddings",
+            files={"file": ("speaker.wav", make_pcm16_wav(), "audio/wav")},
+        )
+        accepted = client.post(
+            "/v1/nota/speaker-embeddings",
+            headers={"Authorization": "Bearer secret-key"},
+            files={"file": ("speaker.wav", make_pcm16_wav(), "audio/wav")},
+        )
+
+    assert rejected.status_code == 401
+    assert accepted.status_code == 200

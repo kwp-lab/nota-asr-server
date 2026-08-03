@@ -79,6 +79,11 @@ after every window completes, applies `speaker_count` at that global stage, and
 renumbers the resulting clusters by first appearance. Per-window labels never
 escape in the final response.
 
+The optional `/v1/nota/speaker-embeddings` endpoint lazy-loads the same CAM++
+model family independently of a selected ASR backend. It returns one
+L2-normalized anonymous vector for a bounded client-prepared sample. It does
+not perform name matching or participant storage.
+
 ## Stable Output
 
 SenseVoice, Paraformer, and Fun-ASR-Nano raw results are not

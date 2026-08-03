@@ -10,6 +10,7 @@ from nota_asr_server.backends import (
     SenseVoiceBackend,
 )
 from nota_asr_server.backends.base import ASRBackend, BackendResult, BackendWindowResult
+from nota_asr_server.backends.speaker_embedding import SpeakerEmbeddingBackend
 from nota_asr_server.config import Settings
 from nota_asr_server.errors import ModelLoadError, UnknownModelError
 
@@ -29,6 +30,7 @@ class ModelManager:
         }
         self._backends: dict[str, ASRBackend] = {}
         self._load_errors: dict[str, str] = {}
+        self._speaker_embedding_backend = SpeakerEmbeddingBackend(settings.device)
         self._load_lock = threading.RLock()
         self._inference_gate = threading.BoundedSemaphore(
             settings.max_concurrent_inferences
@@ -110,6 +112,10 @@ class ModelManager:
                 centers,
                 speaker_count=speaker_count,
             )
+
+    def extract_speaker_embedding(self, audio_path: str) -> tuple[float, ...]:
+        with self._inference_gate:
+            return self._speaker_embedding_backend.extract(audio_path)
 
     @property
     def ready(self) -> bool:
