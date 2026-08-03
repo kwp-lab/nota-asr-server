@@ -12,6 +12,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Added authenticated, stateless CAM++ speaker-embedding extraction for
   bounded 16 kHz mono PCM16 WAV samples, including capability discovery,
   stable model fingerprints, strict validation, and request-scoped cleanup.
+- Added bounded two-stage CAM++ candidate and window analysis that returns
+  clean original-range offsets for reusable voiceprint enrollment while still
+  providing a preview-only result for manual naming when audio quality does
+  not meet biometric storage gates.
 - Added lazy-loaded `fun-asr-nano` API support using the official
   `FunAudioLLM/Fun-ASR-Nano-2512` PyTorch checkpoint, FSMN-VAD, CAM++, native
   punctuation, ITN, timestamps, and meeting-wide speaker reconciliation.

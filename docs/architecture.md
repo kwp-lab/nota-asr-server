@@ -32,8 +32,9 @@ Windows client
 - Normalization owns the public response semantics.
 - Pydantic schemas are the executable API contract.
 - The speaker-embedding backend owns lazy CAM++ loading and normalized vector
-  extraction. Its route owns strict WAV validation and request-scoped cleanup;
-  it is independent of transcription and durable job state.
+  extraction plus bounded multi-clip purity analysis. Its route owns strict
+  WAV validation and request-scoped cleanup; it is independent of transcription
+  and durable job state.
 
 Raw FunASR dictionaries must not cross the normalization boundary.
 
@@ -49,6 +50,13 @@ flow. The `/v1/nota` job API is additive and returns the same
 bounded, validated voice sample through the same process-wide inference gate,
 returns an anonymous L2-normalized CAM++ vector, and deletes the upload. It
 does not read or write the batch-job database.
+
+`POST /v1/nota/speaker-samples/analyze` is the conservative enrollment flow.
+It clusters bounded candidates that the client already grouped under one
+anonymous label, checks within-candidate CAM++ window stability, and removes
+uncertain boundaries and short turns. It returns either enrollable clean ranges
+and an embedding or a preview-only result with no embedding. It never edits or
+regenerates a transcript.
 
 ## Concurrency
 
