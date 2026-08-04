@@ -26,6 +26,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 - Advertised Fun-ASR-Nano in the default enabled model list while retaining
   SenseVoice as the startup preload and default transcription model.
+- Changed Paraformer diarization output from one speaker per VAD region to one
+  speaker per CT-Punc sentence, while retaining meeting-wide CAM++ clustering.
+- Bounded a requested speaker count by the available meeting centroids so
+  sparse valid voice data can return fewer speakers instead of failing final
+  clustering.
 
 ## [0.2.0] - 2026-07-31
 

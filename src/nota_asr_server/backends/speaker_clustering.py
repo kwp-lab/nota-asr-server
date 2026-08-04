@@ -15,8 +15,11 @@ class ShortRecordingClusterBackend:
 
     def __call__(self, embeddings: Any, *, oracle_num: int | None = None) -> np.ndarray:
         sample_count = int(embeddings.shape[0])
+        requested_speakers = None
+        if oracle_num is not None and sample_count > 0:
+            requested_speakers = max(1, min(int(oracle_num), sample_count))
         if sample_count >= 20:
-            return self._upstream(embeddings, oracle_num=oracle_num)
+            return self._upstream(embeddings, oracle_num=requested_speakers)
         if sample_count == 0:
             return np.empty(0, dtype=int)
         if sample_count == 1:
@@ -33,10 +36,6 @@ class ShortRecordingClusterBackend:
         )
         cosine_distances = np.clip(1.0 - normalized @ normalized.T, 0.0, 2.0)
         np.fill_diagonal(cosine_distances, 0.0)
-        requested_speakers = None
-        if oracle_num is not None:
-            requested_speakers = max(1, min(int(oracle_num), sample_count))
-
         if requested_speakers == 1:
             return np.zeros(sample_count, dtype=int)
         if requested_speakers is not None:

@@ -460,6 +460,7 @@ def test_global_clustering_reconciles_swapped_local_labels(tmp_path):
         def cluster_speaker_centers(self, model, centers, *, speaker_count):
             assert model == "fun-asr-nano"
             assert centers == ((1.0, 0.0), (0.0, 1.0), (0.0, 1.0), (1.0, 0.0))
+            assert speaker_count == 2
             time.sleep(0.01)
             return (7, 9, 9, 7)
 
@@ -478,7 +479,7 @@ def test_global_clustering_reconciles_swapped_local_labels(tmp_path):
             model="fun-asr-nano",
             language="auto",
             diarization=True,
-            speaker_count=None,
+            speaker_count=2,
             duration=4.0,
             progress_current=2,
             progress_total=2,

@@ -1,6 +1,7 @@
 import pytest
 
 from nota_asr_server.backends.fun_asr_nano import FunAsrNanoBackend
+from nota_asr_server.backends.paraformer import ParaformerBackend
 from nota_asr_server.backends.sensevoice import SenseVoiceBackend
 
 
@@ -43,6 +44,19 @@ def test_sensevoice_enables_native_punctuation_and_itn():
     assert result.text == "会议开始。"
     assert result.segments[0].text == "会议开始。"
     assert result.segments[0].speaker == "speaker_0"
+
+
+def test_model_specific_speaker_segmentation_modes():
+    sensevoice = SenseVoiceBackend(device="cpu")
+    paraformer = ParaformerBackend(device="cpu")
+    nano = FunAsrNanoBackend(device="cpu")
+
+    assert sensevoice.model_config["spk_mode"] == "vad_segment"
+    assert "punc_model" not in sensevoice.model_config
+    assert paraformer.model_config["punc_model"] == "ct-punc"
+    assert paraformer.model_config["spk_mode"] == "punc_segment"
+    assert nano.model_config["spk_mode"] == "vad_segment"
+    assert "punc_model" not in nano.model_config
 
 
 def test_window_speaker_centers_follow_normalized_first_appearance_order():

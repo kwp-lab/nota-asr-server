@@ -24,9 +24,13 @@ The `paraformer` alias lazily loads:
 - `ct-punc` for punctuation.
 - `cam++` for speaker embeddings and clustering.
 
-Both adapters use `spk_mode=vad_segment`. This reduces model-specific sentence
-boundary differences, but clients must still treat segment boundaries as
-implementation details.
+Paraformer uses `spk_mode=punc_segment`. CT-Punc first converts a long VAD
+region into timestamped sentences, then FunASR assigns each sentence the
+CAM++ speaker with the greatest temporal overlap. This can expose rapid
+speaker changes that `vad_segment` would collapse into one label. Punctuation
+errors, overlapping speech, and speaker changes within one predicted sentence
+remain unresolved, so clients must treat segment boundaries as implementation
+details.
 
 ## Fun-ASR-Nano Option
 
@@ -55,7 +59,8 @@ vLLM, an NPU runtime, remote model code, or quantized weights.
 
 CAM++ creates an embedding for each overlapping 1.5-second speech chunk. FunASR
 then clusters those embeddings and maps the resulting numeric labels back to
-VAD segments. Nota converts the labels to response-local `speaker_N` values;
+VAD segments for SenseVoice and Fun-ASR-Nano, or CT-Punc sentence boundaries
+for Paraformer. Nota converts the labels to response-local `speaker_N` values;
 they are anonymous clusters, not voice identities.
 
 FunASR 1.3.30 forces every input with fewer than 20 embeddings into one speaker,
@@ -65,13 +70,16 @@ even when `preset_spk_num` is supplied. Nota replaces that small-input branch:
   clustering with the requested count, bounded by the number of embeddings.
 - Fewer than 20 embeddings without `speaker_count`: average-linkage clustering
   using the upstream CAM++ merge similarity of `0.78`.
-- 20 or more embeddings: the unmodified FunASR clustering backend.
+- 20 or more embeddings: the FunASR clustering backend, with a requested count
+  bounded by the available embedding count before delegation.
 
 This makes short multi-speaker recordings separable, but diarization remains an
 estimate. Similar voices, background speech, overlapping speech, very short
 turns, and poor audio can merge speakers or split one speaker into several.
 Clients should let users correct labels. Supplying an accurate `speaker_count`
 improves predictability but cannot exceed the number of usable speech chunks.
+If fewer valid whole-meeting centroids exist than the requested count, the
+final result contains fewer speakers instead of failing clustering.
 
 For Nota batch jobs, FunASR returns private per-window speaker centroids through
 `return_spk_center`. The server clusters all window centroids together only

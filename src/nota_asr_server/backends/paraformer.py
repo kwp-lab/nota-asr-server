@@ -12,7 +12,7 @@ class ParaformerBackend(FunASRBackend):
                 "vad_model": "fsmn-vad",
                 "punc_model": "ct-punc",
                 "spk_model": "cam++",
-                "spk_mode": "vad_segment",
+                "spk_mode": "punc_segment",
             },
             capabilities=BackendCapabilities(
                 languages=("zh", "en"),
@@ -21,4 +21,3 @@ class ParaformerBackend(FunASRBackend):
             ),
             accepts_language_hint=False,
         )
-
