@@ -57,14 +57,16 @@ vLLM, an NPU runtime, remote model code, or quantized weights.
 
 ## Speaker Diarization
 
-CAM++ creates an embedding for each overlapping 1.5-second speech chunk. FunASR
-then clusters those embeddings and maps the resulting numeric labels back to
-VAD segments for SenseVoice and Fun-ASR-Nano, or CT-Punc sentence boundaries
-for Paraformer. Nota converts the labels to response-local `speaker_N` values;
-they are anonymous clusters, not voice identities.
+CAM++ creates an embedding for each overlapping 1.5-second speech chunk with a
+0.75-second shift. FunASR clusters those embeddings and initially maps the
+resulting numeric labels back to VAD segments for SenseVoice and Fun-ASR-Nano,
+or CT-Punc sentence boundaries for Paraformer. Nota converts the labels to
+response-local `speaker_N` values; they are anonymous clusters, not voice
+identities.
 
-FunASR 1.3.30 forces every input with fewer than 20 embeddings into one speaker,
-even when `preset_spk_num` is supplied. Nota replaces that small-input branch:
+During window-local CAM++ clustering, FunASR 1.3.30 forces every input with
+fewer than 20 embeddings into one speaker, even when `preset_spk_num` is
+supplied. Nota replaces that small-input branch:
 
 - Fewer than 20 embeddings with `speaker_count`: average-linkage cosine
   clustering with the requested count, bounded by the number of embeddings.
@@ -76,16 +78,37 @@ even when `preset_spk_num` is supplied. Nota replaces that small-input branch:
 This makes short multi-speaker recordings separable, but diarization remains an
 estimate. Similar voices, background speech, overlapping speech, very short
 turns, and poor audio can merge speakers or split one speaker into several.
-Clients should let users correct labels. Supplying an accurate `speaker_count`
-improves predictability but cannot exceed the number of usable speech chunks.
-If fewer valid whole-meeting centroids exist than the requested count, the
-final result contains fewer speakers instead of failing clustering.
+Clients should let users correct labels. A supplied `speaker_count` cannot
+create more usable speech chunks or centroids than the audio provides.
 
 For Nota batch jobs, FunASR returns private per-window speaker centroids through
-`return_spk_center`. The server clusters all window centroids together only
-after every window completes, applies `speaker_count` at that global stage, and
-renumbers the resulting clusters by first appearance. Per-window labels never
-escape in the final response.
+`return_spk_center`. After every window completes, the server clusters those
+sparse centroids with a separate deterministic cosine strategy; it never uses
+FunASR's 20-embedding switch at the meeting level. Automatic mode uses a 0.78
+similarity threshold with complete linkage so weakly related centroids cannot
+enter one cluster through a similarity chain. A supplied `speaker_count` is a
+safety target rather than an exact count. It uses the same 0.78 complete-linkage
+safety line as automatic mode and never lowers that threshold to approach the
+target. The final result may therefore contain more speakers than requested.
+It may contain fewer only when there are fewer usable centers than the target.
+Final clusters are renumbered by first appearance, and per-window labels never
+escape in the final response. See
+[`ADR 0011`](decisions/0011-separate-local-and-meeting-speaker-clustering.md).
+
+SenseVoice and Fun-ASR-Nano batch windows additionally retain the already
+computed CAM++ chunk trace and ASR token timestamps. After whole-meeting
+clustering, the finalizer maps those chunks to global speaker prototypes,
+requires a cosine improvement margin before reassigning a chunk, smooths turns
+shorter than 0.7 seconds, and snaps stable changes to token boundaries. A split
+is accepted only when the aligned tokens exactly reproduce the original
+normalized segment text; otherwise the VAD segment is retained. This produces
+finer speaker turns without a second model pass and never discards transcript
+text. The complete flow and fallback rules are recorded in
+[`ADR 0010`](decisions/0010-turn-aligned-speaker-segmentation.md).
+
+This refinement applies only to durable whole-meeting jobs. The synchronous
+OpenAI-compatible endpoint retains native model segmentation. Paraformer keeps
+its CT-Punc sentence path and does not use the VAD turn refiner.
 
 The optional `/v1/nota/speaker-embeddings` endpoint lazy-loads the same CAM++
 model family independently of a selected ASR backend. It returns one

@@ -62,7 +62,9 @@ With Docker Compose, `./models` is bind-mounted at `/app/models`, so downloaded
 weights remain visible in the repository checkout on the host.
 
 `NOTA_DATA_DIR` defaults to `./data` and contains the batch-job SQLite database
-plus uploaded Ogg files and window checkpoints. It must be persistent across
+plus uploaded Ogg files and window checkpoints. Window checkpoints include
+normalized output, speaker centers, compressed float16 CAM++ traces when
+available, and aligned token metadata. It must be persistent across
 service restarts. Docker Compose bind-mounts `./data` at `/app/data`.
 
 Clients delete jobs after committing results locally. Jobs that are not

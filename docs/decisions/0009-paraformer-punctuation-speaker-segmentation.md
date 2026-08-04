@@ -32,13 +32,15 @@ flowchart TD
     D --> F["Assign each sentence by greatest speaker-time overlap"]
     E --> F
     F --> G["Meeting window speaker centroids"]
-    G --> H["Whole-meeting clustering<br/>apply speaker_count when supplied"]
+    G --> H["Whole-meeting safety clustering<br/>use speaker_count as a target"]
     H --> I["Stable response-local speaker_N labels"]
 ```
 
-For durable batch jobs, a known `speaker_count` is applied only during final
-whole-meeting centroid clustering. It is not forced into each processing
-window because a window may contain only a subset of the meeting participants.
+For durable batch jobs, a known `speaker_count` is used as a safety target only
+during final whole-meeting centroid clustering. It is not forced into each
+processing window because a window may contain only a subset of the meeting
+participants. Finalization may preserve more anonymous speakers than the
+target rather than merge weakly similar voices.
 
 ## Consequences
 
@@ -48,8 +50,9 @@ window because a window may contain only a subset of the meeting participants.
   fragments.
 - Simultaneous speech and speaker changes inside one predicted sentence remain
   unresolved.
-- A correct `speaker_count` reduces over- or under-clustering but cannot create
-  usable embeddings for extremely short speech.
+- A correct `speaker_count` guides clustering but cannot create usable
+  embeddings for extremely short speech or override the similarity safety
+  floor.
 - The requested count is bounded by the number of available whole-meeting
   centroids. A meeting can therefore return fewer speakers than requested when
   there are not enough valid speaker centers to support that many clusters.

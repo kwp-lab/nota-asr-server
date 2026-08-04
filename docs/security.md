@@ -14,10 +14,13 @@ Production requirements:
 - Do not expose `/docs` publicly without an intentional gateway policy.
 
 Batch jobs are bound to a SHA-256 fingerprint of the accepted API key; raw keys
-are never stored. Audio, window checkpoints, and final transcript JSON are
+are never stored. Audio, window checkpoints, private CAM++ trace embeddings,
+and final transcript JSON are
 deleted after client acknowledgement or the configured retention deadline.
 SQLite secure deletion and a truncated WAL checkpoint remove deleted transcript
 and window payloads from reusable database pages and the active write-ahead log.
+CAM++ traces never appear in API responses or technical logs and follow the
+same client-confirmed deletion and retention fallback as their owning job.
 Job identifiers are random and authorization failures do not reveal whether a
 job exists for another key.
 

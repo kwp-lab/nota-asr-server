@@ -1,8 +1,10 @@
 import pytest
+import torch
 
 from nota_asr_server.backends.fun_asr_nano import FunAsrNanoBackend
 from nota_asr_server.backends.paraformer import ParaformerBackend
 from nota_asr_server.backends.sensevoice import SenseVoiceBackend
+from nota_asr_server.backends.speaker_clustering import ShortRecordingClusterBackend
 
 
 class CapturingModel:
@@ -73,6 +75,57 @@ def test_window_speaker_centers_follow_normalized_first_appearance_order():
     )
 
     assert centers == ((0.0, 1.0), (1.0, 0.0))
+
+
+class TraceCapturingModel:
+    def __init__(self) -> None:
+        self.cb_model = ShortRecordingClusterBackend(lambda embeddings, oracle_num=None: [])
+
+    def generate(self, **kwargs):
+        self.cb_model(
+            torch.tensor(
+                [
+                    [1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                ]
+            ),
+            oracle_num=3,
+        )
+        return [
+            {
+                "text": "甲乙丙",
+                "words": ["甲", "乙", "丙"],
+                "timestamp": [[100, 800], [1100, 1800], [2100, 2800]],
+                "sentence_info": [
+                    {
+                        "start": 0,
+                        "end": 3000,
+                        "sentence": "甲乙丙",
+                        "spk": 0,
+                    }
+                ],
+                "spk_embedding_center": [[1.0, 0.0, 0.0]],
+            }
+        ]
+
+
+def test_vad_window_captures_hidden_camplus_turns_without_an_extra_model_pass():
+    backend = SenseVoiceBackend(device="cpu")
+    backend._model = TraceCapturingModel()
+
+    window = backend.transcribe_window(
+        "/tmp/meeting.wav",
+        language="auto",
+        diarization=True,
+        duration=3.0,
+    )
+
+    assert len(window.speaker_centers) == 3
+    assert len(window.speaker_trace) == 3
+    assert len({chunk.local_speaker for chunk in window.speaker_trace}) == 3
+    assert [token.text for token in window.aligned_tokens] == ["甲", "乙", "丙"]
+    assert window.result.segments[0].text == "甲乙丙"
 
 
 class NanoCapturingModel:

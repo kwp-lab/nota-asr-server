@@ -22,7 +22,19 @@ import numpy as np
 import soundfile as sf
 from scipy.signal import resample_poly
 
-from nota_asr_server.backends.base import BackendResult, BackendSegment
+from nota_asr_server.backends.base import (
+    AlignedToken,
+    BackendResult,
+    BackendSegment,
+    SpeakerTraceChunk,
+)
+from nota_asr_server.backends.turn_alignment import (
+    build_speaker_turns,
+    decode_speaker_trace,
+    encode_speaker_trace,
+    global_speaker_prototypes,
+    refine_segments_with_turns,
+)
 from nota_asr_server.config import Settings
 from nota_asr_server.errors import APIError, ModelLoadError, UnknownModelError
 from nota_asr_server.schemas import (
@@ -76,6 +88,8 @@ class WindowRecord:
     end: float
     result: BackendResult
     speaker_centers: tuple[tuple[float, ...], ...]
+    speaker_trace: tuple[SpeakerTraceChunk, ...] = ()
+    aligned_tokens: tuple[AlignedToken, ...] = ()
 
 
 def _utc_now() -> datetime:
@@ -146,12 +160,34 @@ class BatchJobStore:
               end_seconds REAL NOT NULL,
               result_json TEXT NOT NULL,
               speaker_centers_json TEXT NOT NULL,
+              speaker_trace_blob BLOB NOT NULL DEFAULT X'',
+              aligned_tokens_json TEXT NOT NULL DEFAULT '[]',
               completed_at TEXT NOT NULL,
               PRIMARY KEY(job_id, window_index)
             );
             """
         )
+        self._ensure_window_columns()
         self._recover_disk_offsets()
+
+    def _ensure_window_columns(self) -> None:
+        columns = {
+            str(row["name"])
+            for row in self._connection.execute(
+                "PRAGMA table_info(transcription_job_windows)"
+            ).fetchall()
+        }
+        if "speaker_trace_blob" not in columns:
+            self._connection.execute(
+                "ALTER TABLE transcription_job_windows "
+                "ADD COLUMN speaker_trace_blob BLOB NOT NULL DEFAULT X''"
+            )
+        if "aligned_tokens_json" not in columns:
+            self._connection.execute(
+                "ALTER TABLE transcription_job_windows "
+                "ADD COLUMN aligned_tokens_json TEXT NOT NULL DEFAULT '[]'"
+            )
+        self._connection.commit()
 
     def close(self) -> None:
         with self._lock:
@@ -368,8 +404,9 @@ class BatchJobStore:
                 """
                 INSERT OR REPLACE INTO transcription_job_windows (
                   job_id, window_index, start_seconds, end_seconds, result_json,
-                  speaker_centers_json, completed_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                  speaker_centers_json, speaker_trace_blob, aligned_tokens_json,
+                  completed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     job_id,
@@ -378,6 +415,11 @@ class BatchJobStore:
                     window.end,
                     json.dumps(payload, ensure_ascii=False),
                     json.dumps(window.speaker_centers),
+                    encode_speaker_trace(window.speaker_trace),
+                    json.dumps(
+                        [asdict(token) for token in window.aligned_tokens],
+                        ensure_ascii=False,
+                    ),
                     _iso(now),
                 ),
             )
@@ -433,6 +475,15 @@ class BatchJobStore:
                     speaker_centers=tuple(
                         tuple(float(value) for value in center)
                         for center in json.loads(row["speaker_centers_json"])
+                    ),
+                    speaker_trace=decode_speaker_trace(row["speaker_trace_blob"]),
+                    aligned_tokens=tuple(
+                        AlignedToken(
+                            start=float(token["start"]),
+                            end=float(token["end"]),
+                            text=str(token["text"]),
+                        )
+                        for token in json.loads(row["aligned_tokens_json"])
                     ),
                 )
             )
@@ -1054,6 +1105,8 @@ class BatchJobService:
                 end=round(float(start) + actual_duration, 3),
                 result=window_result.result,
                 speaker_centers=window_result.speaker_centers,
+                speaker_trace=window_result.speaker_trace,
+                aligned_tokens=window_result.aligned_tokens,
             )
         finally:
             try:
@@ -1092,6 +1145,10 @@ class BatchJobService:
         if len(labels) != len(center_keys):
             raise DiarizationFailedError
         local_to_cluster = dict(zip(center_keys, labels, strict=True))
+        prototypes = global_speaker_prototypes(
+            tuple((window.index, window.speaker_trace) for window in windows),
+            local_to_cluster,
+        )
 
         text = ""
         merged: list[tuple[float, float, str, int | None]] = []
@@ -1116,21 +1173,42 @@ class BatchJobService:
                 else math.inf
             )
             for segment in window.result.segments:
-                absolute_start = window.start + segment.start
-                absolute_end = window.start + segment.end
+                if segment.speaker is None:
+                    continue
+                try:
+                    local_index = int(segment.speaker.removeprefix("speaker_"))
+                except ValueError as exc:
+                    raise DiarizationFailedError from exc
+                if (window.index, local_index) not in local_to_cluster:
+                    raise DiarizationFailedError
+            if any(
+                (window.index, chunk.local_speaker) not in local_to_cluster
+                for chunk in window.speaker_trace
+            ):
+                raise DiarizationFailedError
+            turns = build_speaker_turns(
+                window.speaker_trace,
+                window_index=window.index,
+                local_to_cluster=local_to_cluster,
+                prototypes=prototypes,
+            )
+            window_segments = refine_segments_with_turns(
+                window.result.segments,
+                window.aligned_tokens,
+                turns,
+                window_index=window.index,
+                local_to_cluster=local_to_cluster,
+            )
+            for segment_start, segment_end, segment_text, cluster in window_segments:
+                absolute_start = window.start + segment_start
+                absolute_end = window.start + segment_end
                 midpoint = (absolute_start + absolute_end) / 2
                 if midpoint < lower_boundary or midpoint >= upper_boundary:
                     continue
-                cluster: int | None = None
-                if segment.speaker is not None:
-                    try:
-                        local_index = int(segment.speaker.removeprefix("speaker_"))
-                        cluster = local_to_cluster[(window.index, local_index)]
-                    except (KeyError, ValueError) as exc:
-                        raise DiarizationFailedError from exc
+                if cluster is not None:
                     cluster_names.setdefault(cluster, f"speaker_{len(cluster_names)}")
-                text = _append_without_overlap(text, segment.text)
-                merged.append((absolute_start, absolute_end, segment.text, cluster))
+                text = _append_without_overlap(text, segment_text)
+                merged.append((absolute_start, absolute_end, segment_text, cluster))
 
         if not text:
             for window in windows:

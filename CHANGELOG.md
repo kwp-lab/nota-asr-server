@@ -24,6 +24,15 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- Separated dense window-level CAM++ clustering from sparse whole-meeting
+  centroid clustering. Meeting finalization now uses deterministic cosine
+  agglomerative clustering for every centroid count, with conservative
+  complete linkage in automatic mode instead of switching to FunASR spectral
+  clustering at 20 centers.
+- Refined SenseVoice and Fun-ASR-Nano whole-meeting diarization by preserving
+  CAM++ chunk traces and ASR token timestamps, reconciling them against global
+  speaker clusters, and safely splitting a VAD segment only when text alignment
+  is exact; the public response schema remains unchanged.
 - Advertised Fun-ASR-Nano in the default enabled model list while retaining
   SenseVoice as the startup preload and default transcription model.
 - Changed Paraformer diarization output from one speaker per VAD region to one
@@ -31,6 +40,10 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Bounded a requested speaker count by the available meeting centroids so
   sparse valid voice data can return fewer speakers instead of failing final
   clustering.
+- Treated a requested speaker count as a safety target, allowing additional
+  anonymous speakers instead of forcing weakly similar participants into one
+  label, and applied the same 0.78 similarity safety line in automatic and
+  specified-count modes.
 
 ## [0.2.0] - 2026-07-31
 

@@ -10,8 +10,8 @@ Windows client
     -> bounded five-minute 16 kHz processing windows
     -> ModelManager concurrency gate
     -> SenseVoiceBackend, ParaformerBackend, or FunAsrNanoBackend
-    -> FunASR AutoModel + FSMN-VAD + CAM++ speaker centroids
-    -> meeting-wide centroid clustering and overlap merge
+    -> FunASR AutoModel + FSMN-VAD + CAM++ centers and private chunk traces
+    -> meeting-wide clustering + token-aligned speaker turns + overlap merge
     -> model-independent normalizer
     -> versioned API response
     -> client acknowledgement or 24-hour expiry cleanup
@@ -28,7 +28,13 @@ Windows client
 - The model manager maps `NOTA_MODEL_DIR` to ModelScope's process-wide cache
   before any FunASR model is loaded.
 - The short-recording cluster adapter owns the FunASR `<20` embedding
-  compatibility behavior documented in `model-strategy.md`.
+  compatibility behavior and captures CAM++ traces during VAD-mode batch
+  inference as documented in `model-strategy.md`.
+- The batch finalizer owns meeting-wide speaker prototypes, stable turn
+  smoothing, guarded token-boundary splitting, and VAD-level fallback.
+- The meeting speaker clusterer owns deterministic cosine clustering for sparse
+  per-window centroids; it does not reuse FunASR's dense-embedding sample-count
+  switch.
 - Normalization owns the public response semantics.
 - Pydantic schemas are the executable API contract.
 - The speaker-embedding backend owns lazy CAM++ loading and normalized vector
@@ -40,7 +46,8 @@ Raw FunASR dictionaries must not cross the normalization boundary.
 
 Fun-ASR-Nano uses the same bounded job and speaker pipeline. FSMN-VAD keeps
 Nano inputs at no more than 30 seconds, Nano emits text and timestamps, and
-CAM++ emits the private centroids consumed by meeting-wide finalization.
+CAM++ emits private centroids and, for VAD-mode models, a compact chunk trace
+consumed by meeting-wide finalization. Both remain internal to the server.
 
 The OpenAI-compatible endpoint retains its original synchronous temporary-file
 flow. The `/v1/nota` job API is additive and returns the same
