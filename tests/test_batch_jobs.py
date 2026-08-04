@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import sqlite3
 import threading
 import time
 from collections import namedtuple
@@ -12,9 +13,11 @@ import soundfile as sf
 from fastapi.testclient import TestClient
 
 from nota_asr_server.backends.base import (
+    AlignedToken,
     BackendResult,
     BackendSegment,
     BackendWindowResult,
+    SpeakerTraceChunk,
 )
 from nota_asr_server.config import Settings
 from nota_asr_server.main import create_app
@@ -102,6 +105,40 @@ def create_payload(size: int, *, model: str = "sensevoice") -> dict:
         "response_format": "verbose_json",
         "diarization": True,
     }
+
+
+def test_store_adds_turn_alignment_columns_to_existing_window_table(tmp_path):
+    configured = settings(tmp_path)
+    configured.data_dir.mkdir(parents=True)
+    connection = sqlite3.connect(configured.data_dir / "nota-asr.sqlite3")
+    connection.execute(
+        """
+        CREATE TABLE transcription_job_windows (
+          job_id TEXT NOT NULL,
+          window_index INTEGER NOT NULL,
+          start_seconds REAL NOT NULL,
+          end_seconds REAL NOT NULL,
+          result_json TEXT NOT NULL,
+          speaker_centers_json TEXT NOT NULL,
+          completed_at TEXT NOT NULL,
+          PRIMARY KEY(job_id, window_index)
+        )
+        """
+    )
+    connection.commit()
+    connection.close()
+
+    store = BatchJobStore(configured)
+    try:
+        columns = {
+            row[1]
+            for row in store._connection.execute(
+                "PRAGMA table_info(transcription_job_windows)"
+            ).fetchall()
+        }
+        assert {"speaker_trace_blob", "aligned_tokens_json"} <= columns
+    finally:
+        store.close()
 
 
 def wait_for_state(client: TestClient, job_id: str, expected: str) -> dict:
@@ -535,6 +572,90 @@ def test_global_clustering_reconciles_swapped_local_labels(tmp_path):
         ]
         assert [segment.id for segment in result.segments] == [0, 1, 2, 3]
         assert result.processing_time >= 0.51
+    finally:
+        service.store.close()
+
+
+def test_finalization_splits_a_vad_segment_with_meeting_wide_speaker_turns(tmp_path):
+    class TurnClusterManager(FakeBatchModelManager):
+        def cluster_speaker_centers(self, model, centers, *, speaker_count):
+            assert speaker_count == 3
+            return tuple(range(len(centers)))
+
+    service = BatchJobService(settings(tmp_path), TurnClusterManager())
+    try:
+        stored_job = service.store.create(
+            "anonymous",
+            "key",
+            CreateTranscriptionJob.model_validate(create_payload(100)),
+            model="sensevoice",
+        )
+        job = JobRecord(
+            id=stored_job.id,
+            owner="anonymous",
+            idempotency_key="key",
+            state="processing",
+            phase="diarizing",
+            file_name="meeting.ogg",
+            content_type="audio/ogg",
+            upload_length=100,
+            upload_offset=100,
+            model="sensevoice",
+            language="auto",
+            diarization=True,
+            speaker_count=3,
+            duration=3.0,
+            progress_current=1,
+            progress_total=1,
+            progress_unit="windows",
+            result_json=None,
+            error_code=None,
+            error_message=None,
+            cancel_requested=False,
+            expires_at="2099-01-01T00:00:00Z",
+        )
+        trace = (
+            SpeakerTraceChunk(0.0, 1.0, 0, (1.0, 0.0, 0.0)),
+            SpeakerTraceChunk(1.0, 2.0, 1, (0.0, 1.0, 0.0)),
+            SpeakerTraceChunk(2.0, 3.0, 2, (0.0, 0.0, 1.0)),
+        )
+        window = WindowRecord(
+            index=0,
+            start=0.0,
+            end=3.0,
+            result=BackendResult(
+                text="甲乙丙",
+                language="zh",
+                duration=3.0,
+                processing_time=0.1,
+                segments=(BackendSegment(0.0, 3.0, "甲乙丙", "speaker_0"),),
+            ),
+            speaker_centers=(
+                (1.0, 0.0, 0.0),
+                (0.0, 1.0, 0.0),
+                (0.0, 0.0, 1.0),
+            ),
+            speaker_trace=trace,
+            aligned_tokens=(
+                AlignedToken(0.1, 0.8, "甲"),
+                AlignedToken(1.1, 1.8, "乙"),
+                AlignedToken(2.1, 2.8, "丙"),
+            ),
+        )
+
+        service.store.save_window(job.id, window)
+        restored = service.store.windows(job.id)[0]
+        result = service._finalize(job, (restored,))
+
+        assert [segment.text for segment in result.segments] == ["甲", "乙", "丙"]
+        assert [segment.speaker for segment in result.segments] == [
+            "speaker_0",
+            "speaker_1",
+            "speaker_2",
+        ]
+        assert result.text.replace("\n", "") == "甲乙丙"
+        assert len(restored.speaker_trace) == 3
+        assert [token.text for token in restored.aligned_tokens] == ["甲", "乙", "丙"]
     finally:
         service.store.close()
 

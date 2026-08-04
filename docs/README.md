@@ -17,6 +17,12 @@ Read the documents in this order:
     why enrollment purity is analyzed independently from transcription output.
 11. [`decisions/0009-paraformer-punctuation-speaker-segmentation.md`](decisions/0009-paraformer-punctuation-speaker-segmentation.md):
     why Paraformer maps CAM++ speakers to CT-Punc sentence boundaries.
+12. [`decisions/0010-turn-aligned-speaker-segmentation.md`](decisions/0010-turn-aligned-speaker-segmentation.md):
+    how SenseVoice and Fun-ASR-Nano recover stable speaker turns inside one VAD
+    segment without changing the public API.
+13. [`decisions/0011-separate-local-and-meeting-speaker-clustering.md`](decisions/0011-separate-local-and-meeting-speaker-clustering.md):
+    why dense window embeddings and sparse whole-meeting centroids use separate
+    deterministic clustering strategies.
 
 When behavior changes, update code, tests, and the corresponding document in
 the same change.

@@ -14,7 +14,15 @@ from nota_asr_server.backends.base import (
     BackendWindowResult,
 )
 from nota_asr_server.backends.normalization import normalize_funasr_result
-from nota_asr_server.backends.speaker_clustering import ShortRecordingClusterBackend
+from nota_asr_server.backends.speaker_clustering import (
+    ShortRecordingClusterBackend,
+    cluster_meeting_speaker_centers,
+)
+from nota_asr_server.backends.turn_alignment import (
+    capture_speaker_trace,
+    extract_aligned_tokens,
+    relabel_result_for_trace,
+)
 
 
 class FunASRBackend(ASRBackend):
@@ -135,10 +143,27 @@ class FunASRBackend(ASRBackend):
         )
         self._apply_language_hint(generate_kwargs, language)
 
+        capture_backend = (
+            getattr(self._model, "cb_model", None)
+            if diarization
+            and self.model_config.get("spk_mode") == "vad_segment"
+            and isinstance(
+                getattr(self._model, "cb_model", None),
+                ShortRecordingClusterBackend,
+            )
+            else None
+        )
+        capture = None
         with self._inference_lock:
+            if capture_backend is not None:
+                capture_backend.clear_capture()
             started = time.perf_counter()
-            raw_results = self._model.generate(**generate_kwargs)
-            elapsed = time.perf_counter() - started
+            try:
+                raw_results = self._model.generate(**generate_kwargs)
+            finally:
+                elapsed = time.perf_counter() - started
+                if capture_backend is not None:
+                    capture = capture_backend.take_capture()
 
         result = normalize_funasr_result(
             raw_results,
@@ -147,7 +172,15 @@ class FunASRBackend(ASRBackend):
             processing_time=elapsed,
             diarization=diarization,
         )
+        speaker_trace = ()
+        aligned_tokens = ()
         centers = self._ordered_speaker_centers(raw_results) if diarization else ()
+        if diarization and capture_backend is not None:
+            speaker_trace, trace_centers = capture_speaker_trace(raw_results, capture)
+            if speaker_trace and trace_centers:
+                centers = trace_centers
+                aligned_tokens = extract_aligned_tokens(raw_results)
+                result = relabel_result_for_trace(raw_results, result)
         if diarization and result.text and any(segment.speaker for segment in result.segments):
             expected = {
                 int(segment.speaker.removeprefix("speaker_"))
@@ -156,7 +189,12 @@ class FunASRBackend(ASRBackend):
             }
             if not centers or max(expected, default=-1) >= len(centers):
                 raise ValueError("FunASR did not return speaker centers for voiced segments")
-        return BackendWindowResult(result=result, speaker_centers=centers)
+        return BackendWindowResult(
+            result=result,
+            speaker_centers=centers,
+            speaker_trace=speaker_trace,
+            aligned_tokens=aligned_tokens,
+        )
 
     def cluster_speaker_centers(
         self,
@@ -164,17 +202,12 @@ class FunASRBackend(ASRBackend):
         *,
         speaker_count: int | None,
     ) -> tuple[int, ...]:
-        self.load()
         if not centers:
             return ()
-        import torch
-
-        embeddings = torch.as_tensor(np.asarray(centers), dtype=torch.float32)
-        with self._inference_lock:
-            labels = self._model.cb_model(
-                embeddings.cpu(),
-                oracle_num=speaker_count,
-            )
+        labels = cluster_meeting_speaker_centers(
+            centers,
+            speaker_count=speaker_count,
+        )
         return tuple(int(value) for value in np.asarray(labels).tolist())
 
     @staticmethod

@@ -50,7 +50,9 @@ Contract rules:
   not expose a reliable language code. Explicit supported hints are preserved.
 - Speaker ids are only stable within one response.
 - Speaker labels are diarization estimates, not verified speaker identities.
-- `speaker_count` is a clustering hint; invalid audio or too few usable speech
+- For durable Nota batch jobs, `speaker_count` is a safety target, not an exact
+  output count. Weakly similar voices are not forced together to reach it, so
+  a result may contain more speakers. Invalid audio or too few usable speech
   chunks can still yield fewer speakers.
 - Segment counts and boundaries may change between model implementations.
 

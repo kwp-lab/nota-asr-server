@@ -29,9 +29,26 @@ class BackendResult:
 
 
 @dataclass(frozen=True)
+class SpeakerTraceChunk:
+    start: float
+    end: float
+    local_speaker: int
+    embedding: tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class AlignedToken:
+    start: float
+    end: float
+    text: str
+
+
+@dataclass(frozen=True)
 class BackendWindowResult:
     result: BackendResult
     speaker_centers: tuple[tuple[float, ...], ...]
+    speaker_trace: tuple[SpeakerTraceChunk, ...] = ()
+    aligned_tokens: tuple[AlignedToken, ...] = ()
 
 
 class ASRBackend(ABC):
