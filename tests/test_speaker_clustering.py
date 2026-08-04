@@ -63,6 +63,16 @@ def test_long_recording_delegates_to_funasr_cluster_backend():
     assert upstream.calls == [(embeddings, 3)]
 
 
+def test_long_recording_bounds_requested_speakers_by_embedding_count():
+    upstream = UpstreamCluster()
+    backend = ShortRecordingClusterBackend(upstream)
+    embeddings = torch.ones((20, 2))
+
+    backend(embeddings, oracle_num=64)
+
+    assert upstream.calls == [(embeddings, 20)]
+
+
 def test_requested_speaker_count_is_bounded_by_embedding_count():
     backend = ShortRecordingClusterBackend(UpstreamCluster())
     embeddings = torch.tensor([[1.0, 0.0], [0.0, 1.0]])

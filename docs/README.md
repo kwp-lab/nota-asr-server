@@ -15,6 +15,8 @@ Read the documents in this order:
    for client-local speaker identification.
 10. [`decisions/0008-clean-speaker-sample-analysis.md`](decisions/0008-clean-speaker-sample-analysis.md):
     why enrollment purity is analyzed independently from transcription output.
+11. [`decisions/0009-paraformer-punctuation-speaker-segmentation.md`](decisions/0009-paraformer-punctuation-speaker-segmentation.md):
+    why Paraformer maps CAM++ speakers to CT-Punc sentence boundaries.
 
 When behavior changes, update code, tests, and the corresponding document in
 the same change.
