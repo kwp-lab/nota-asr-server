@@ -32,6 +32,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Added path-scoped pull-request and `main` CI for fake-backend tests and
   dependency compliance, with superseded runs cancelled to conserve hosted
   runner time.
+- Defined the Linux CPU deployment as the Server license-inventory baseline
+  and prevented virtual-environment Python symlinks from leaking CI runner
+  packages into generated compliance artifacts.
 - Docker CPU deployments now install the exact `uv.lock` `cpu` extra instead
   of resolving PyTorch and application dependencies during every build, and
   carry the project and third-party legal files in the image.

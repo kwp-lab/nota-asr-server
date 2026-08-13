@@ -8,18 +8,25 @@ licenses.
 
 ## Reproducible Python inventory
 
-The supported CPU deployment is represented by the `cpu` project extra and
-the committed `uv.lock`. Create the exact production environment and generate
-the legal artifacts with:
+The supported release deployment is Linux CPU, represented by the `cpu`
+project extra and the committed `uv.lock`. Generate the committed legal
+artifacts inside the same Linux environment used by CI and the Docker image:
 
 ```bash
-uv sync --frozen --no-dev --extra cpu
-uv run --no-sync python scripts/generate_license_artifacts.py --python .venv/bin/python
+docker run --rm -v "$PWD:/workspace" -w /workspace \
+  -e UV_PROJECT_ENVIRONMENT=/tmp/nota-license-venv \
+  ghcr.io/astral-sh/uv:0.9.2-python3.12-bookworm-slim sh -lc \
+  'uv sync --frozen --no-dev --extra cpu && uv run --no-sync python \
+  scripts/generate_license_artifacts.py \
+  --python /tmp/nota-license-venv/bin/python'
 ```
 
-On Windows, pass `.venv/Scripts/python.exe`. The generator uses pinned
-`pip-licenses 5.5.5`, applies `scripts/license-policy.json`, verifies reviewed
-exceptions, and writes:
+Do not regenerate the committed inventory from a Windows environment: optional
+platform dependencies differ (`colorama` on Windows and `uvloop` on Linux).
+The generator preserves the selected virtual-environment entry point instead
+of resolving its Python symlink, so it cannot accidentally inspect CI runner
+packages. It uses pinned `pip-licenses 5.5.5`, applies
+`scripts/license-policy.json`, verifies reviewed exceptions, and writes:
 
 - `THIRD_PARTY_LICENSES.md`: package/version/license inventory;
 - `THIRD_PARTY_NOTICES.txt`: full installed license texts;

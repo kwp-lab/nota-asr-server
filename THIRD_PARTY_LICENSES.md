@@ -18,7 +18,6 @@ packages are outside this Python inventory; see `MODEL_LICENSES.md` and
 | cffi | 2.1.0 | MIT-0 | https://cffi.readthedocs.io/en/latest/whatsnew.html |
 | charset-normalizer | 3.4.9 | MIT | https://github.com/jawah/charset_normalizer/blob/master/CHANGELOG.md |
 | click | 8.4.2 | BSD-3-Clause | https://github.com/pallets/click/ |
-| colorama | 0.4.6 | BSD-3-Clause | https://github.com/tartley/colorama |
 | crcmod | 1.7 | MIT | http://crcmod.sourceforge.net/ |
 | cryptography | 49.0.0 | Apache-2.0 OR BSD-3-Clause | https://github.com/pyca/cryptography |
 | decorator | 5.3.1 | BSD-2-Clause | UNKNOWN |
@@ -99,6 +98,7 @@ packages are outside this Python inventory; see `MODEL_LICENSES.md` and
 | umap-learn | 0.5.12 | BSD | http://github.com/lmcinnes/umap |
 | urllib3 | 2.7.0 | MIT | https://github.com/urllib3/urllib3/blob/main/CHANGES.rst |
 | uvicorn | 0.52.0 | BSD-3-Clause | https://uvicorn.dev/ |
+| uvloop | 0.22.1 | Apache-2.0; MIT | UNKNOWN |
 | watchfiles | 1.2.0 | MIT | https://github.com/samuelcolvin/watchfiles |
 | websockets | 17.0 | BSD-3-Clause | https://github.com/python-websockets/websockets |
 

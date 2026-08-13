@@ -28,8 +28,11 @@ publish a package.
 
 The committed `uv.lock` includes the reproducible CPU deployment extra. After
 dependency changes, rebuild the frozen environment and regenerate the legal
-artifacts as documented in [`open-source-compliance.md`](open-source-compliance.md).
-Do not approve a lock-file change with stale notices or an unreviewed license.
+artifacts from the documented Linux container baseline in
+[`open-source-compliance.md`](open-source-compliance.md). Do not approve a
+lock-file change with stale notices or an unreviewed license; a Windows local
+environment has a different platform dependency graph and is not the release
+inventory source.
 
 For a Fun-ASR-Nano CPU smoke check, start a server configured with
 `NOTA_PRELOAD_MODEL=fun-asr-nano`, submit an untracked sample with

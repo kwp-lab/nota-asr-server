@@ -269,7 +269,15 @@ def main() -> None:
     parser.add_argument("--python", type=Path, required=True)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    packages = validate(run_pip_licenses(args.python.resolve()))
+    python = args.python
+    if not python.is_absolute():
+        python = ROOT / python
+    if not python.is_file():
+        raise RuntimeError(f"Python environment entry point does not exist: {python}")
+    # A POSIX virtual environment normally symlinks Python to its base
+    # interpreter. Resolving that symlink would make pip-licenses inspect the
+    # runner's global environment instead of the selected locked environment.
+    packages = validate(run_pip_licenses(python.absolute()))
     write_or_check(OUTPUTS["inventory"], inventory(packages), args.check)
     write_or_check(OUTPUTS["notices"], notices(packages), args.check)
     write_or_check(OUTPUTS["sbom"], sbom(packages), args.check)

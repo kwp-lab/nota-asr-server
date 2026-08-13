@@ -43,7 +43,7 @@ jobs:
           enable-cache: true
 
       - name: Install frozen CPU development dependencies
-        run: uv sync --frozen --extra cpu
+        run: uv sync --frozen --extra cpu --extra dev
 
       - name: Run automated tests
         run: uv run --no-sync pytest
