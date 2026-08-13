@@ -9,6 +9,11 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Added a bilingual contribution guide covering API compatibility, synthetic
+  test data, model-independent boundaries, and pull-request checks.
+- Added generated production dependency notices, a CycloneDX SBOM, model
+  license guidance, and a CI license-policy gate.
+
 - Added authenticated, stateless CAM++ speaker-embedding extraction for
   bounded 16 kHz mono PCM16 WAV samples, including capability discovery,
   stable model fingerprints, strict validation, and request-scoped cleanup.
@@ -24,6 +29,14 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- Added path-scoped pull-request and `main` CI for fake-backend tests and
+  dependency compliance, with superseded runs cancelled to conserve hosted
+  runner time.
+- Docker CPU deployments now install the exact `uv.lock` `cpu` extra instead
+  of resolving PyTorch and application dependencies during every build, and
+  carry the project and third-party legal files in the image.
+
+- Unified the MIT license copyright holder and project metadata under `kwp-lab`.
 - Separated dense window-level CAM++ clustering from sparse whole-meeting
   centroid clustering. Meeting finalization now uses deterministic cosine
   agglomerative clustering for every centroid count, with conservative

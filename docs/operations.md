@@ -56,6 +56,10 @@ missing model snapshots below that directory. ModelScope normally defaults to
 a user cache under `~/.cache/modelscope`, but Nota deliberately overrides that
 SDK default so a deployment's models live with its project data.
 
+Downloaded weights are not covered by Nota's MIT license. Operators must
+review [`MODEL_LICENSES.md`](../MODEL_LICENSES.md) and each exact downloaded
+model revision before redistributing a populated model directory or image.
+
 The `models/` directory and local `.env` are ignored by Git. Back them up or
 copy them separately when an offline machine must reuse downloaded weights.
 With Docker Compose, `./models` is bind-mounted at `/app/models`, so downloaded

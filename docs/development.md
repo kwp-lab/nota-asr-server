@@ -15,6 +15,22 @@ pytest --cov=nota_asr_server
 Contract and API tests use fake backends and must not download models. Real
 model smoke tests are operational checks and run separately.
 
+GitHub Actions uses path-scoped checks to limit hosted-runner consumption.
+Changes to `src/`, `tests/`, or the locked Python environment run the automated
+test suite on Linux with the frozen CPU extra. Dependency, container, or legal
+artifact changes separately run the license policy and Python package-content
+checks. Documentation-only changes start neither workflow; repeated pushes to
+the same branch cancel the older run. Both checks also support manual runs.
+They do not start a server, download model checkpoints, build a container, or
+publish a package.
+
+## Dependency and license verification
+
+The committed `uv.lock` includes the reproducible CPU deployment extra. After
+dependency changes, rebuild the frozen environment and regenerate the legal
+artifacts as documented in [`open-source-compliance.md`](open-source-compliance.md).
+Do not approve a lock-file change with stale notices or an unreviewed license.
+
 For a Fun-ASR-Nano CPU smoke check, start a server configured with
 `NOTA_PRELOAD_MODEL=fun-asr-nano`, submit an untracked sample with
 `model=fun-asr-nano`, `response_format=verbose_json`, and `diarization=true`,

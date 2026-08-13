@@ -3,6 +3,10 @@
 This directory is the durable engineering context for people and AI agents.
 Read the documents in this order:
 
+Contributors should first read the repository-level
+[`CONTRIBUTING.md`](../CONTRIBUTING.md) for workflow, privacy, and compatibility
+rules, then use this index to find the specification that owns a change.
+
 1. [`business-context.md`](business-context.md): product goals and scope boundaries.
 2. [`api-contract.md`](api-contract.md): the client-facing contract that must remain stable.
 3. [`architecture.md`](architecture.md): runtime components and request flow.
@@ -23,6 +27,11 @@ Read the documents in this order:
 13. [`decisions/0011-separate-local-and-meeting-speaker-clustering.md`](decisions/0011-separate-local-and-meeting-speaker-clustering.md):
     why dense window embeddings and sparse whole-meeting centroids use separate
     deterministic clustering strategies.
+14. [`open-source-compliance.md`](open-source-compliance.md): dependency license
+    policy, generated notices, SBOM boundaries, and model-license separation.
+15. [`decisions/0012-locked-open-source-compliance.md`](decisions/0012-locked-open-source-compliance.md):
+    why the CPU container uses a frozen extra and keeps Python, OCI, and model
+    license inventories separate.
 
 When behavior changes, update code, tests, and the corresponding document in
 the same change.
