@@ -1,5 +1,12 @@
 FROM python:3.12-slim
 
+ARG UV_VERSION=0.9.2
+
+LABEL org.opencontainers.image.title="Nota ASR Server" \
+      org.opencontainers.image.description="Local ASR service for Nota" \
+      org.opencontainers.image.source="https://github.com/kwp-lab/nota-asr-server" \
+      org.opencontainers.image.licenses="MIT"
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -12,13 +19,15 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY pyproject.toml README.md LICENSE NOTICE /app/
-COPY src /app/src
+RUN python -m pip install --no-cache-dir "uv==$UV_VERSION"
 
-RUN python -m pip install --upgrade pip \
-    && python -m pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu \
-    && python -m pip install .
+COPY pyproject.toml uv.lock README.md LICENSE NOTICE THIRD_PARTY_LICENSES.md THIRD_PARTY_NOTICES.txt MODEL_LICENSES.md bom.cyclonedx.json /app/
+RUN uv sync --frozen --no-dev --extra cpu --no-install-project
+
+COPY src /app/src
+RUN uv sync --frozen --no-dev --extra cpu
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8010
 CMD ["nota-asr-server"]
-

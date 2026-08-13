@@ -405,7 +405,8 @@ Nota 不会把客户端的十分钟录音分块当成互相独立的 ASR 请求�
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-自动化测试使用模拟模型后端，不会下载真实模型。贡献和开发流程请参见
+自动化测试使用模拟模型后端，不会下载真实模型。贡献与隐私规则请参见
+[`CONTRIBUTING.md`](CONTRIBUTING.md)，详细环境配置请参见
 [`docs/development.md`](docs/development.md)。
 
 ## CPU 与 Intel 核显基准测试
@@ -516,3 +517,10 @@ Nota 的 API 根地址中使用相同端口。
 - 架构决策记录。
 
 当系统行为发生变化时，应同时更新代码、测试、README 和受到影响的技术规格。
+
+## 许可证
+
+Nota ASR Server 采用 [MIT 许可证](LICENSE)。Copyright (c) 2026 kwp-lab。
+第三方 Python 依赖仍适用各自的许可证；请查阅[依赖清单](THIRD_PARTY_LICENSES.md)、
+[完整许可声明](THIRD_PARTY_NOTICES.txt)、[CycloneDX SBOM](bom.cyclonedx.json)和
+[模型许可证说明](MODEL_LICENSES.md)。

@@ -428,8 +428,9 @@ Install the development extras into the existing virtual environment:
 ```
 
 The automated tests use fake model backends and do not download real model
-weights. See [`docs/development.md`](docs/development.md) for the contribution
-workflow.
+weights. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the contribution and
+privacy rules, then [`docs/development.md`](docs/development.md) for detailed
+environment guidance.
 
 ## CPU and Intel GPU Benchmark
 
@@ -545,3 +546,10 @@ links to:
 
 When behavior changes, update the code, tests, README, and affected technical
 specification together.
+
+## License
+
+Nota ASR Server is licensed under the [MIT License](LICENSE). Copyright (c) 2026 kwp-lab.
+Third-party Python packages retain their own licenses; see the
+[dependency inventory](THIRD_PARTY_LICENSES.md), [complete notices](THIRD_PARTY_NOTICES.txt),
+[CycloneDX SBOM](bom.cyclonedx.json), and [model license guidance](MODEL_LICENSES.md).
