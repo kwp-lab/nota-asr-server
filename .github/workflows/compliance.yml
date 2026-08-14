@@ -1,21 +1,8 @@
 name: Compliance
 
 on:
+  workflow_call:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - ".github/workflows/compliance.yml"
-      - "pyproject.toml"
-      - "uv.lock"
-      - "Dockerfile"
-      - "scripts/generate_license_artifacts.py"
-      - "scripts/license-policy.json"
-      - "LICENSE"
-      - "NOTICE"
-      - "MODEL_LICENSES.md"
-      - "THIRD_PARTY_LICENSES.md"
-      - "THIRD_PARTY_NOTICES.txt"
-      - "bom.cyclonedx.json"
   push:
     branches:
       - main

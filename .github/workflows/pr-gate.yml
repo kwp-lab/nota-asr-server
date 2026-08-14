@@ -1,0 +1,120 @@
+name: PR gate
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect affected checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tests: ${{ steps.paths.outputs.tests }}
+      compliance: ${{ steps.paths.outputs.compliance }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Detect affected check groups
+        id: paths
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          has_changes() {
+            if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- "$@"; then
+              printf 'false'
+            else
+              printf 'true'
+            fi
+          }
+
+          workflow_core="$(has_changes .github/workflows/pr-gate.yml)"
+          tests="$(has_changes \
+            src \
+            tests \
+            pyproject.toml \
+            uv.lock \
+            .github/workflows/tests.yml)"
+          compliance="$(has_changes \
+            .github/workflows/compliance.yml \
+            pyproject.toml \
+            uv.lock \
+            Dockerfile \
+            scripts/generate_license_artifacts.py \
+            scripts/license-policy.json \
+            LICENSE \
+            NOTICE \
+            MODEL_LICENSES.md \
+            THIRD_PARTY_LICENSES.md \
+            THIRD_PARTY_NOTICES.txt \
+            bom.cyclonedx.json)"
+
+          if [[ "$workflow_core" == "true" ]]; then
+            tests=true
+            compliance=true
+          fi
+
+          {
+            echo "tests=$tests"
+            echo "compliance=$compliance"
+          } >> "$GITHUB_OUTPUT"
+
+  tests:
+    name: Server tests
+    needs: changes
+    if: needs.changes.outputs.tests == 'true'
+    uses: ./.github/workflows/tests.yml
+
+  compliance:
+    name: Dependency compliance
+    needs: changes
+    if: needs.changes.outputs.compliance == 'true'
+    uses: ./.github/workflows/compliance.yml
+
+  gate:
+    name: PR Gate
+    needs:
+      - changes
+      - tests
+      - compliance
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CHANGES_RESULT: ${{ needs.changes.result }}
+      TESTS_RESULT: ${{ needs.tests.result }}
+      COMPLIANCE_RESULT: ${{ needs.compliance.result }}
+
+    steps:
+      - name: Require every affected check to pass
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "$CHANGES_RESULT" != "success" ]]; then
+            echo "Change detection did not succeed: $CHANGES_RESULT"
+            exit 1
+          fi
+
+          for result in "$TESTS_RESULT" "$COMPLIANCE_RESULT"; do
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "An affected check did not succeed: $result"
+              exit 1
+            fi
+          done
+
+          echo "Every affected pull-request check passed."

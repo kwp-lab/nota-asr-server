@@ -19,10 +19,13 @@ GitHub Actions uses path-scoped checks to limit hosted-runner consumption.
 Changes to `src/`, `tests/`, or the locked Python environment run the automated
 test suite on Linux with the frozen CPU extra. Dependency, container, or legal
 artifact changes separately run the license policy and Python package-content
-checks. Documentation-only changes start neither workflow; repeated pushes to
-the same branch cancel the older run. Both checks also support manual runs.
-They do not start a server, download model checkpoints, build a container, or
-publish a package.
+checks. Pull requests always report one required `PR Gate` result: a lightweight
+job detects changed paths and calls only the affected reusable checks.
+Documentation-only changes therefore do not start tests or compliance work.
+Repeated pushes to the same branch cancel the older run. Both checks also
+support independent manual runs and relevant pushes to `main`. They do not
+start a server, download model checkpoints, build a container, or publish a
+package.
 
 ## Dependency and license verification
 
