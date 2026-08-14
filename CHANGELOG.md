@@ -29,6 +29,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- Added an always-reported pull-request gate that runs only the server or
+  compliance checks affected by changed paths, allowing `main` protection
+  without running application checks for documentation-only changes.
 - Added path-scoped pull-request and `main` CI for fake-backend tests and
   dependency compliance, with superseded runs cancelled to conserve hosted
   runner time.
