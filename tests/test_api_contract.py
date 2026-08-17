@@ -428,52 +428,38 @@ def test_speaker_sample_analysis_enforces_candidate_count_and_total_duration():
     assert not manager.captured_sample_paths
 
 
-def test_srt_response_exposes_cue_times_and_speaker_labels():
+@pytest.mark.parametrize(
+    ("response_format", "media_type", "body"),
+    [
+        (
+            "srt",
+            "application/x-subrip; charset=utf-8",
+            "1\n00:00:00,500 --> 00:00:02,500\nspeaker_0: 会议开始。\n",
+        ),
+        (
+            "vtt",
+            "text/vtt; charset=utf-8",
+            "WEBVTT\n\n00:00:00.500 --> 00:00:02.500\nspeaker_0: 会议开始。\n",
+        ),
+        ("text", "text/plain; charset=utf-8", "会议开始。"),
+    ],
+)
+def test_rendered_formats_keep_cue_times_and_clean_up_temp_files(
+    response_format, media_type, body
+):
     client, manager = make_client()
     with client:
         response = client.post(
             "/v1/audio/transcriptions",
             files={"file": ("meeting.wav", b"audio", "audio/wav")},
-            data={"response_format": "srt", "diarization": "true"},
+            data={"response_format": response_format},
         )
 
     assert response.status_code == 200
-    assert response.headers["content-type"] == "application/x-subrip; charset=utf-8"
-    assert response.text == (
-        "1\n00:00:00,500 --> 00:00:02,500\nspeaker_0: 会议开始。\n"
-    )
+    assert response.headers["content-type"] == media_type
+    assert response.text == body
     assert manager.captured_path is not None
     assert not Path(manager.captured_path).exists()
-
-
-def test_vtt_response_starts_with_the_webvtt_header():
-    client, _ = make_client()
-    with client:
-        response = client.post(
-            "/v1/audio/transcriptions",
-            files={"file": ("meeting.wav", b"audio", "audio/wav")},
-            data={"response_format": "vtt"},
-        )
-
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "text/vtt; charset=utf-8"
-    assert response.text == (
-        "WEBVTT\n\n00:00:00.500 --> 00:00:02.500\nspeaker_0: 会议开始。\n"
-    )
-
-
-def test_text_response_stays_openai_compatible():
-    client, _ = make_client()
-    with client:
-        response = client.post(
-            "/v1/audio/transcriptions",
-            files={"file": ("meeting.wav", b"audio", "audio/wav")},
-            data={"response_format": "text"},
-        )
-
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "text/plain; charset=utf-8"
-    assert response.text == "会议开始。"
 
 
 def test_disabled_diarization_renders_cues_without_speaker_labels():

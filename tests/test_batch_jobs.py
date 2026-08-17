@@ -217,6 +217,22 @@ def test_resumable_batch_protocol_returns_existing_verbose_schema(tmp_path, mode
             ],
         }
 
+        srt = client.get(
+            f"/v1/nota/transcription-jobs/{job_id}/result",
+            params={"response_format": "srt"},
+        )
+        assert srt.status_code == 200
+        assert srt.headers["content-type"] == "application/x-subrip; charset=utf-8"
+        assert srt.text.startswith("1\n00:00:00,000 --> 00:00:00,1")
+        assert "speaker_0: 会议开始。" in srt.text
+
+        rejected = client.get(
+            f"/v1/nota/transcription-jobs/{job_id}/result",
+            params={"response_format": "json"},
+        )
+        assert rejected.status_code == 400
+        assert rejected.json()["error"]["code"] == "invalid_response_format"
+
         deleted = client.delete(f"/v1/nota/transcription-jobs/{job_id}")
         assert deleted.status_code == 204
         assert client.get(f"/v1/nota/transcription-jobs/{job_id}").status_code == 404
@@ -863,76 +879,3 @@ def test_expired_jobs_remove_database_rows_and_audio(tmp_path):
     finally:
         store.close()
 
-
-def upload_and_finish(client: TestClient, audio: bytes) -> str:
-    created = client.post(
-        "/v1/nota/transcription-jobs",
-        headers={"Idempotency-Key": "recording-formats-1"},
-        json=create_payload(len(audio)),
-    )
-    assert created.status_code == 201
-    job_id = created.json()["id"]
-
-    offset = 0
-    while offset < len(audio):
-        chunk = audio[offset : offset + 1024]
-        response = client.patch(
-            f"/v1/nota/transcription-jobs/{job_id}/audio",
-            headers={
-                "Upload-Offset": str(offset),
-                "Upload-Checksum": f"sha256={hashlib.sha256(chunk).hexdigest()}",
-                "Content-Type": "application/offset+octet-stream",
-            },
-            content=chunk,
-        )
-        assert response.status_code == 204
-        offset = int(response.headers["upload-offset"])
-
-    assert client.post(f"/v1/nota/transcription-jobs/{job_id}/complete").status_code == 202
-    wait_for_state(client, job_id, "succeeded")
-    return job_id
-
-
-def test_batch_result_renders_timestamped_subtitle_formats(tmp_path):
-    audio = ogg_bytes(tmp_path)
-    app = create_app(settings=settings(tmp_path), model_manager=FakeBatchModelManager())
-    with TestClient(app) as client:
-        job_id = upload_and_finish(client, audio)
-
-        default = client.get(f"/v1/nota/transcription-jobs/{job_id}/result")
-        srt = client.get(
-            f"/v1/nota/transcription-jobs/{job_id}/result",
-            params={"response_format": "srt"},
-        )
-        vtt = client.get(
-            f"/v1/nota/transcription-jobs/{job_id}/result",
-            params={"response_format": "vtt"},
-        )
-        text = client.get(
-            f"/v1/nota/transcription-jobs/{job_id}/result",
-            params={"response_format": "text"},
-        )
-        rejected = client.get(
-            f"/v1/nota/transcription-jobs/{job_id}/result",
-            params={"response_format": "json"},
-        )
-
-        assert default.status_code == 200
-        assert default.json()["schema_version"] == "1.0"
-        assert default.headers["content-type"] == "application/json"
-
-        assert srt.status_code == 200
-        assert srt.headers["content-type"] == "application/x-subrip; charset=utf-8"
-        assert srt.text.startswith("1\n00:00:00,000 --> 00:00:00,1")
-        assert "speaker_0: 会议开始。" in srt.text
-
-        assert vtt.status_code == 200
-        assert vtt.headers["content-type"] == "text/vtt; charset=utf-8"
-        assert vtt.text.startswith("WEBVTT\n")
-
-        assert text.status_code == 200
-        assert text.headers["content-type"] == "text/plain; charset=utf-8"
-        assert text.text == default.json()["text"]
-
-        assert rejected.status_code == 400
-        assert rejected.json()["error"]["code"] == "invalid_response_format"
