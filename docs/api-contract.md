@@ -12,7 +12,7 @@ The public base path is `/v1`. Nota clients should request
 | `file` | file | yes | - | Meeting audio |
 | `model` | string | no | configured default | `sensevoice`, `paraformer`, or `fun-asr-nano` |
 | `language` | string | no | `auto` | Language hint |
-| `response_format` | string | no | `json` | `json` or `verbose_json` |
+| `response_format` | string | no | `json` | `json`, `verbose_json`, `text`, `srt`, or `vtt` |
 | `diarization` | boolean | no | `true` | Return speaker labels |
 | `speaker_count` | integer | no | unknown | Optional known number of speakers, 1-64 |
 
@@ -58,6 +58,38 @@ Contract rules:
 
 The compact `json` response remains `{"text": "..."}` for OpenAI compatibility.
 
+## Timestamped Text Formats
+
+`response_format` also accepts the three plain-text formats an OpenAI
+transcription client already understands. They are a rendering of the same
+stable response, not a second source of truth: the JSON contract stays
+authoritative and no new model output is exposed.
+
+| Format | Media type | Content |
+|---|---|---|
+| `text` | `text/plain; charset=utf-8` | The transcript only, identical to the `text` field |
+| `srt` | `application/x-subrip; charset=utf-8` | SubRip cues numbered from 1, `HH:MM:SS,mmm` times |
+| `vtt` | `text/vtt; charset=utf-8` | WebVTT cues after a `WEBVTT` header, `HH:MM:SS.mmm` times |
+
+```srt
+1
+00:00:00,520 --> 00:00:04,860
+speaker_0: 大家早上好，我们开始今天的会议。
+```
+
+Rendering rules:
+
+- A cue keeps the `start` and `end` of its segment. Times are clamped at zero
+  and a cue never ends before it starts.
+- When a segment has a speaker label, the cue text is prefixed with
+  `<speaker>: `. With `diarization=false` the cue carries the text alone.
+  The label stays a meeting-local anonymous id, exactly as in the JSON contract.
+- Segments whose text is empty or whitespace produce no cue, so `srt` cue
+  numbering can differ from segment `id`.
+- An empty transcript returns an empty `text`/`srt` body and a header-only
+  `vtt` body, not an error.
+- Errors keep the JSON envelope below even when a text format was requested.
+
 ## Nota Durable Batch Extension
 
 Nota meeting clients discover `batch_transcription_version=1` at
@@ -66,7 +98,11 @@ original Ogg sequentially with `Upload-Offset` and
 `Upload-Checksum: sha256=<hex>`, finalize it, poll status, and fetch the result.
 
 The final `GET /v1/nota/transcription-jobs/{id}/result` response is exactly the
-Stable Verbose Response above. A successful result read does not delete data:
+Stable Verbose Response above. The endpoint also accepts
+`?response_format=text|srt|vtt` to read the same stored result in the
+timestamped text formats described above; the default stays `verbose_json` and
+the stored result is unchanged. `json` is not accepted here because a durable
+meeting result is never returned without its segments. A successful result read does not delete data:
 the client first commits the response locally and then acknowledges cleanup
 with `DELETE /v1/nota/transcription-jobs/{id}`.
 

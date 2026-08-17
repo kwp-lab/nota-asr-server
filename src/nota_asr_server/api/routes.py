@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from nota_asr_server import __version__
 from nota_asr_server.auth import require_api_key
@@ -24,6 +24,11 @@ from nota_asr_server.services.audio_storage import (
     persist_upload,
     probe_duration,
     remove_file,
+)
+from nota_asr_server.transcripts import (
+    SUPPORTED_RESPONSE_FORMATS,
+    is_rendered_format,
+    render,
 )
 
 
@@ -73,14 +78,14 @@ async def transcribe(
     response_format: Annotated[str, Form()] = "json",
     diarization: Annotated[bool, Form()] = True,
     speaker_count: Annotated[int | None, Form(ge=1, le=64)] = None,
-) -> JSONResponse:
+) -> Response:
     settings = request.app.state.settings
     selected_model = model or settings.preload_model
-    if response_format not in {"json", "verbose_json"}:
+    if response_format not in SUPPORTED_RESPONSE_FORMATS:
         raise APIError(
             400,
             "invalid_response_format",
-            "response_format must be json or verbose_json",
+            "response_format must be json, verbose_json, text, srt, or vtt",
         )
 
     temp_path = None
@@ -118,6 +123,21 @@ async def transcribe(
                 "server_error",
             ) from exc
 
+        segments = [
+            TranscriptionSegment(
+                id=index,
+                start=segment.start,
+                end=segment.end,
+                text=segment.text,
+                speaker=segment.speaker,
+            )
+            for index, segment in enumerate(result.segments)
+        ]
+
+        if is_rendered_format(response_format):
+            rendered = render(response_format, text=result.text, segments=segments)
+            return Response(content=rendered.body, media_type=rendered.media_type)
+
         if response_format == "json":
             payload = CompactTranscription(text=result.text)
         else:
@@ -127,16 +147,7 @@ async def transcribe(
                 duration=result.duration,
                 processing_time=result.processing_time,
                 text=result.text,
-                segments=[
-                    TranscriptionSegment(
-                        id=index,
-                        start=segment.start,
-                        end=segment.end,
-                        text=segment.text,
-                        speaker=segment.speaker,
-                    )
-                    for index, segment in enumerate(result.segments)
-                ],
+                segments=segments,
             )
         return JSONResponse(content=payload.model_dump())
     except UnsupportedAudioError as exc:

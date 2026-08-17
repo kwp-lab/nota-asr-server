@@ -9,6 +9,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Added
 
+- Added `text`, `srt`, and `vtt` response formats to
+  `POST /v1/audio/transcriptions` and a `response_format` query parameter to
+  `GET /v1/nota/transcription-jobs/{id}/result`, so a client can export a
+  transcript that keeps the segment times and speaker labels instead of
+  re-implementing cue formatting. The JSON contract is unchanged and stays
+  authoritative.
 - Added a bilingual contribution guide covering API compatibility, synthetic
   test data, model-independent boundaries, and pull-request checks.
 - Added generated production dependency notices, a CycloneDX SBOM, model

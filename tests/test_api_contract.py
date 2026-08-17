@@ -426,3 +426,77 @@ def test_speaker_sample_analysis_enforces_candidate_count_and_total_duration():
     assert duration_response.status_code == 413
     assert duration_response.json()["error"]["code"] == "voice_samples_too_long"
     assert not manager.captured_sample_paths
+
+
+def test_srt_response_exposes_cue_times_and_speaker_labels():
+    client, manager = make_client()
+    with client:
+        response = client.post(
+            "/v1/audio/transcriptions",
+            files={"file": ("meeting.wav", b"audio", "audio/wav")},
+            data={"response_format": "srt", "diarization": "true"},
+        )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/x-subrip; charset=utf-8"
+    assert response.text == (
+        "1\n00:00:00,500 --> 00:00:02,500\nspeaker_0: 会议开始。\n"
+    )
+    assert manager.captured_path is not None
+    assert not Path(manager.captured_path).exists()
+
+
+def test_vtt_response_starts_with_the_webvtt_header():
+    client, _ = make_client()
+    with client:
+        response = client.post(
+            "/v1/audio/transcriptions",
+            files={"file": ("meeting.wav", b"audio", "audio/wav")},
+            data={"response_format": "vtt"},
+        )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "text/vtt; charset=utf-8"
+    assert response.text == (
+        "WEBVTT\n\n00:00:00.500 --> 00:00:02.500\nspeaker_0: 会议开始。\n"
+    )
+
+
+def test_text_response_stays_openai_compatible():
+    client, _ = make_client()
+    with client:
+        response = client.post(
+            "/v1/audio/transcriptions",
+            files={"file": ("meeting.wav", b"audio", "audio/wav")},
+            data={"response_format": "text"},
+        )
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "text/plain; charset=utf-8"
+    assert response.text == "会议开始。"
+
+
+def test_disabled_diarization_renders_cues_without_speaker_labels():
+    client, _ = make_client()
+    with client:
+        response = client.post(
+            "/v1/audio/transcriptions",
+            files={"file": ("meeting.wav", b"audio", "audio/wav")},
+            data={"response_format": "srt", "diarization": "false"},
+        )
+
+    assert response.status_code == 200
+    assert response.text == "1\n00:00:00,500 --> 00:00:02,500\n会议开始。\n"
+
+
+def test_unknown_response_format_is_rejected():
+    client, _ = make_client()
+    with client:
+        response = client.post(
+            "/v1/audio/transcriptions",
+            files={"file": ("meeting.wav", b"audio", "audio/wav")},
+            data={"response_format": "docx"},
+        )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "invalid_response_format"

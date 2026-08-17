@@ -393,6 +393,9 @@ either:
 - `response_format=json`: `{ "text": "..." }`
 - `response_format=verbose_json`: schema version `1.0`, including language,
   duration, processing time, timestamped segments, and speaker IDs.
+- `response_format=text`: the transcript as plain text.
+- `response_format=srt` or `vtt`: subtitle cues that keep the segment times and
+  speaker labels, for clients that export a timestamped transcript.
 
 See [`docs/api-contract.md`](docs/api-contract.md) for all fields and error
 responses.

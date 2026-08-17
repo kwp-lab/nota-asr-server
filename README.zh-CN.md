@@ -372,6 +372,9 @@ docker compose up --build
 - `response_format=json`：`{ "text": "..." }`
 - `response_format=verbose_json`：响应结构版本为 `1.0`，包含语言、音频时长、
   处理时间、带时间戳的分段和说话人 ID。
+- `response_format=text`：纯文本转写正文。
+- `response_format=srt` 或 `vtt`：保留分段时间和说话人标签的字幕格式，供需要
+  导出带时间戳转写的客户端使用。
 
 所有字段和错误响应请参见
 [`docs/api-contract.md`](docs/api-contract.md)。

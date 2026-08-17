@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, Request, Response
+from fastapi import APIRouter, Depends, Header, Query, Request, Response
 from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import JSONResponse
 
 from nota_asr_server.auth import require_api_key
 from nota_asr_server.backends.speaker_embedding import (
@@ -20,6 +21,11 @@ from nota_asr_server.schemas import (
     CreateTranscriptionJob,
     TranscriptionJobStatus,
     VerboseTranscription,
+)
+from nota_asr_server.transcripts import (
+    RESULT_RESPONSE_FORMATS,
+    is_rendered_format,
+    render,
 )
 
 
@@ -182,8 +188,19 @@ async def job_result(
     request: Request,
     job_id: str,
     principal: Principal,
-) -> VerboseTranscription:
-    return request.app.state.batch_jobs.result(principal, job_id)
+    response_format: Annotated[str, Query()] = "verbose_json",
+) -> Response:
+    if response_format not in RESULT_RESPONSE_FORMATS:
+        raise APIError(
+            400,
+            "invalid_response_format",
+            "response_format must be verbose_json, text, srt, or vtt",
+        )
+    result = request.app.state.batch_jobs.result(principal, job_id)
+    if is_rendered_format(response_format):
+        rendered = render(response_format, text=result.text, segments=result.segments)
+        return Response(content=rendered.body, media_type=rendered.media_type)
+    return JSONResponse(content=result.model_dump())
 
 
 @router.delete(
