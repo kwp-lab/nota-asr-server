@@ -21,6 +21,7 @@ class FakeModelManager:
         self.loaded_models = ["sensevoice"]
         self.readiness_detail = None
         self.captured_path: str | None = None
+        self.captured_model: str | None = None
         self.captured_embedding_path: str | None = None
         self.captured_sample_paths: list[str] = []
 
@@ -83,6 +84,7 @@ class FakeModelManager:
     ):
         if model == "missing":
             raise UnknownModelError(model)
+        self.captured_model = model
         self.captured_path = audio_path
         assert Path(audio_path).exists()
         return BackendResult(
@@ -167,6 +169,45 @@ def test_compact_json_stays_openai_compatible():
 
     assert response.status_code == 200
     assert response.json() == {"text": "会议开始。"}
+
+
+def test_default_model_is_independent_from_preload_model():
+    settings = Settings(
+        default_model="paraformer",
+        preload_model="sensevoice",
+        enabled_models=("sensevoice", "paraformer"),
+    )
+    manager = FakeModelManager()
+    with TestClient(create_app(settings=settings, model_manager=manager)) as client:
+        response = client.post(
+            "/v1/audio/transcriptions",
+            files={"file": ("meeting.wav", b"audio", "audio/wav")},
+        )
+
+    assert response.status_code == 200
+    assert manager.captured_model == "paraformer"
+
+
+def test_manager_shutdown_endpoint_is_hidden_and_token_scoped():
+    app = create_app(settings=Settings(), model_manager=FakeModelManager())
+
+    class FakeServer:
+        should_exit = False
+
+    app.state.manager_shutdown_token = "manager-secret"
+    app.state.uvicorn_server = FakeServer()
+    with TestClient(app) as client:
+        hidden = client.post("/internal/manager/shutdown")
+        stopped = client.post(
+            "/internal/manager/shutdown",
+            headers={"X-Nota-Manager-Token": "manager-secret"},
+        )
+        openapi = client.get("/openapi.json")
+
+    assert hidden.status_code == 404
+    assert stopped.json() == {"status": "stopping"}
+    assert app.state.uvicorn_server.should_exit is True
+    assert "/internal/manager/shutdown" not in openapi.json()["paths"]
 
 
 def test_api_key_boundary():

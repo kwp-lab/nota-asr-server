@@ -17,3 +17,5 @@ benchmark-*.json
 
 # Local benchmark and hardware reports
 /report/
+/target/
+manager/target/

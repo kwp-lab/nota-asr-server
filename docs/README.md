@@ -32,6 +32,12 @@ rules, then use this index to find the specification that owns a change.
 15. [`decisions/0012-locked-open-source-compliance.md`](decisions/0012-locked-open-source-compliance.md):
     why the CPU container uses a frozen extra and keeps Python, OCI, and model
     license inventories separate.
+16. [`decisions/0013-standalone-windows-runtime-and-manager.md`](decisions/0013-standalone-windows-runtime-and-manager.md):
+    ownership and lifecycle boundaries for the portable CPU Runtime, native
+    Manager, external model data, and the original installation proposal.
+17. [`decisions/0014-portable-zip-windows-distribution.md`](decisions/0014-portable-zip-windows-distribution.md):
+    why the official Windows package is an owner-built portable ZIP and how
+    Manager distinguishes portable from future installed configuration.
 
 When behavior changes, update code, tests, and the corresponding document in
 the same change.

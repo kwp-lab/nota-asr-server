@@ -20,7 +20,33 @@ CAM++ 完成说话人分离。
 - 支持可选的 Bearer API Key 认证。
 - 默认针对 CPU 部署，同时支持在 Windows 上通过 PyTorch XPU 使用兼容的
   Intel 核显。
+- 可在本地构建可移动的 Windows 11 x64 CPU one-folder Runtime 和原生
+  Manager；面向普通用户的官方包仅提供 CPU 版，且不包含模型权重。
 - 默认使用一个推理并发槽位。
+
+## Windows 独立产品
+
+Nota Client 不需要安装或管理本仓库。Server 仓库自行拥有完整的 Windows
+产品：自包含 CPU Runtime 和原生 Manager，两者通过便携 ZIP 一起分发。
+目标电脑无需 Python、Git、uv、Rust、Visual Studio 或管理员权限，也不会注册
+Windows 服务、修改 `PATH`。模型在解压后由用户明确选择和下载，可以存放到
+D 盘等其他磁盘。
+
+开发者和 owner 只在本机执行构建：
+
+```powershell
+.\scripts\build-windows-runtime.ps1 `
+  -OutputDirectory .\dist\nota-asr-runtime `
+  -PreloadModel sensevoice
+
+.\scripts\build-windows-release.ps1 -Configuration Release
+```
+
+第一条命令生成不含 Manager 的未压缩开发调试 one-folder。第二条命令要求工作树
+干净，并准备好 Manager 正式签名配置，然后生成
+`Nota-ASR-Runtime-<version>-Windows-x64-CPU.zip`。两条命令都不会上传产物，也不会
+下载模型权重。CLI 与配置约定参见
+[`docs/operations.md`](docs/operations.md)。
 
 ## 选择 PyTorch 运行环境
 
@@ -107,10 +133,12 @@ NOTA_HOST=127.0.0.1
 ```dotenv
 NOTA_PORT=8010
 NOTA_DEVICE=cpu
+NOTA_DEFAULT_MODEL=sensevoice
 NOTA_PRELOAD_MODEL=sensevoice
 NOTA_ENABLED_MODELS=sensevoice,paraformer,fun-asr-nano
 NOTA_MODEL_DIR=./models
 NOTA_DATA_DIR=./data
+NOTA_MODEL_DOWNLOAD_POLICY=on_demand
 NOTA_API_KEYS=
 ```
 

@@ -7,7 +7,52 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-19
+
+### Fixed
+
+- Shortened private Windows Runtime and release staging directory names so
+  deeply nested Python wheel paths remain below legacy Windows path limits.
+- Kept portable and installed Manager configuration ownership distinct: ZIP
+  builds use their adjacent `config/server.toml`, while a future installer can
+  mark its program directory so direct EXE and shortcut launches both use
+  `%APPDATA%\NotaASR\server.toml`.
+- Matched Nota Client tray behavior in the Manager: a single left click restores
+  and focuses the window, while only right click opens the context menu; the
+  global-status indicator is now geometrically centered instead of font-based.
+- Separated the Manager header's Server lifecycle state from temporary action
+  feedback, which now appears left-aligned and vertically centered in a
+  dedicated edge-to-edge global status bar with only a top divider at the
+  bottom.
+- Preserved TOML-relative model and data roots when the Manager saves portable
+  Runtime settings, while retaining absolute paths for external directories.
+- Opened the exact normalized `<data_root>/logs` directory from the Manager
+  instead of silently falling back to the Windows Documents folder when an
+  unresolved relative path or shell-launch failure was encountered.
+- Loaded a Windows system CJK font as an egui fallback so the native Manager
+  renders its Simplified Chinese interface instead of square placeholder
+  glyphs without bundling an additional font in the Runtime.
+- Removed the unused Common Controls v6 tray-menu feature that made the
+  Windows Manager import `TaskDialogIndirect` without an embedded activation
+  manifest and fail before startup on Windows.
+
 ### Added
+
+- Added a bounded real-time Server log viewer to the Windows Manager with
+  incremental file following, text filtering, automatic scrolling, health-probe
+  suppression, log-directory access, and a display-only clear action.
+- Added a versioned TOML configuration contract, structured configuration,
+  model-lifecycle and diagnostic CLI commands, and an explicit model catalog
+  with resumable staging and snapshot verification.
+- Added a movable Windows 11 x64 CPU one-folder builder using self-contained
+  CPython 3.12.12 and locked PyTorch/torchaudio 2.11.0 CPU dependencies.
+- Added the native Rust Nota ASR Manager with tray lifecycle, Job Object child
+  cleanup, model download progress, diagnosis, safe configuration writes,
+  external-server detection, and verified model-directory migration.
+- Added a clean-worktree, owner-local portable ZIP release pipeline with Manager
+  code signing, SHA-256 manifests, and distinct Windows Python and Rust
+  compliance inventories. An installed edition is deferred and is not part of
+  the current repository release path.
 
 - Added a bilingual contribution guide covering API compatibility, synthetic
   test data, model-independent boundaries, and pull-request checks.
@@ -28,6 +73,23 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
   and Cantonese while reporting `und` for Nano automatic-language requests.
 
 ### Changed
+
+- Redesigned the native Manager as a dark two-column control room with models
+  beside the primary live-log workspace, removed the duplicated Server summary,
+  moved collapsed-on-start settings below the model list, and surfaced the
+  configured/running preload model as a model-item badge. Its window,
+  notification-area, and embedded executable icon use the same handwritten M
+  artwork.
+- Reduced the default Windows one-folder size by disabling eager whole-runtime
+  bytecode compilation and pruning native-extension headers and `.lib` build
+  inputs after installation, while retaining post-prune import checks.
+- Separated the default transcription model from the startup preload model and
+  passed the CLI-resolved `Settings` instance directly into FastAPI.
+- Updated Paraformer to the complete SeACo model identifier and pinned the
+  stable VAD, punctuation, CAM++ and Paraformer revisions in the shared catalog.
+- Windows Runtime defaults now bind loopback and require explicit model
+  installation, while existing `.env`, Docker, systemd, and on-demand source
+  deployments retain their behavior.
 
 - Added an always-reported pull-request gate that runs only the server or
   compliance checks affected by changed paths, allowing `main` protection
@@ -104,6 +166,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Added health, readiness, model discovery, optional Bearer authentication,
   Docker, and systemd deployment support.
 
-[Unreleased]: https://github.com/kwp-lab/nota-asr-server/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/kwp-lab/nota-asr-server/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/kwp-lab/nota-asr-server/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kwp-lab/nota-asr-server/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kwp-lab/nota-asr-server/releases/tag/v0.1.0

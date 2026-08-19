@@ -68,8 +68,13 @@ class _Turn:
 class SpeakerEmbeddingBackend:
     """Lazy CAM++ wrapper with a stable, normalized output contract."""
 
-    def __init__(self, device: str) -> None:
+    def __init__(
+        self,
+        device: str,
+        model_reference: tuple[str, str | None] | None = None,
+    ) -> None:
         self.device = device
+        self.model_reference = model_reference or (SPEAKER_EMBEDDING_MODEL, "v2.0.2")
         self._model: Any = None
         self._load_lock = threading.RLock()
         self._inference_lock = threading.Lock()
@@ -86,12 +91,16 @@ class SpeakerEmbeddingBackend:
                 return
             from funasr import AutoModel
 
-            self._model = AutoModel(
-                model=SPEAKER_EMBEDDING_MODEL,
-                device=self.device,
-                disable_update=True,
-                disable_pbar=True,
-            )
+            model, revision = self.model_reference
+            config = {
+                "model": model,
+                "device": self.device,
+                "disable_update": True,
+                "disable_pbar": True,
+            }
+            if revision:
+                config["model_revision"] = revision
+            self._model = AutoModel(**config)
 
     def extract(self, audio_path: str) -> tuple[float, ...]:
         self.load()

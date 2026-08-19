@@ -1,0 +1,43 @@
+[package]
+name = "nota-asr-manager"
+version = "0.3.0"
+edition = "2024"
+license = "MIT"
+publish = false
+build = "build.rs"
+
+[[bin]]
+name = "NotaASRManager"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.102"
+atomic-write-file = "0.3.1"
+directories = "6.0.0"
+eframe = { version = "0.36.1", default-features = false, features = ["accesskit", "default_fonts", "glow"] }
+rfd = "0.17.2"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.151"
+single-instance = "0.3.3"
+toml_edit = "0.25.13"
+tray-icon = { version = "0.24.2", default-features = false }
+uuid = { version = "1.22.0", features = ["v4"] }
+
+[build-dependencies]
+winresource = "0.1.31"
+
+[package.metadata.winresource]
+FileDescription = "Nota ASR Manager"
+ProductName = "Nota ASR Manager"
+OriginalFilename = "NotaASRManager.exe"
+LegalCopyright = "Copyright © kwp-lab"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_Security",
+    "Win32_System_JobObjects",
+    "Win32_System_Threading",
+    "Win32_UI_Shell",
+    "Win32_UI_WindowsAndMessaging",
+] }

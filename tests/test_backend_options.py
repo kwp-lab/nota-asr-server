@@ -55,7 +55,10 @@ def test_model_specific_speaker_segmentation_modes():
 
     assert sensevoice.model_config["spk_mode"] == "vad_segment"
     assert "punc_model" not in sensevoice.model_config
-    assert paraformer.model_config["punc_model"] == "ct-punc"
+    assert paraformer.model_config["punc_model"] == (
+        "iic/punc_ct-transformer_cn-en-common-vocab471067-large"
+    )
+    assert paraformer.model_config["punc_model_revision"] == "v2.0.4"
     assert paraformer.model_config["spk_mode"] == "punc_segment"
     assert nano.model_config["spk_mode"] == "vad_segment"
     assert "punc_model" not in nano.model_config
@@ -163,13 +166,18 @@ class NanoCapturingModel:
 def test_nano_uses_native_punctuation_vad_and_cam_plus_plus():
     backend = FunAsrNanoBackend(device="cpu")
 
-    assert backend.model_config == {
-        "model": "FunAudioLLM/Fun-ASR-Nano-2512",
-        "vad_model": "fsmn-vad",
-        "vad_kwargs": {"max_single_segment_time": 30000},
-        "spk_model": "cam++",
-        "spk_mode": "vad_segment",
-    }
+    assert backend.model_config["model"] == "FunAudioLLM/Fun-ASR-Nano-2512"
+    assert backend.model_config["model_revision"] == "master"
+    assert backend.model_config["vad_model"] == (
+        "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch"
+    )
+    assert backend.model_config["vad_model_revision"] == "v2.0.4"
+    assert backend.model_config["spk_model"] == (
+        "iic/speech_campplus_sv_zh-cn_16k-common"
+    )
+    assert backend.model_config["spk_model_revision"] == "v2.0.2"
+    assert backend.model_config["vad_kwargs"] == {"max_single_segment_time": 30000}
+    assert backend.model_config["spk_mode"] == "vad_segment"
     assert backend.generate_config == {"itn": True}
     assert "punc_model" not in backend.model_config
     assert "trust_remote_code" not in backend.model_config
