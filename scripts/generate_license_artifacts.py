@@ -268,6 +268,11 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--python", type=Path, required=True)
     parser.add_argument("--check", action="store_true")
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Write a platform-specific inventory without replacing committed Linux files",
+    )
     args = parser.parse_args()
     python = args.python
     if not python.is_absolute():
@@ -277,10 +282,21 @@ def main() -> None:
     # A POSIX virtual environment normally symlinks Python to its base
     # interpreter. Resolving that symlink would make pip-licenses inspect the
     # runner's global environment instead of the selected locked environment.
+    outputs = OUTPUTS
+    if args.output_dir:
+        output_dir = args.output_dir
+        if not output_dir.is_absolute():
+            output_dir = ROOT / output_dir
+        output_dir.mkdir(parents=True, exist_ok=True)
+        outputs = {
+            "inventory": output_dir / "THIRD_PARTY_LICENSES.md",
+            "notices": output_dir / "THIRD_PARTY_NOTICES.txt",
+            "sbom": output_dir / "bom.cyclonedx.json",
+        }
     packages = validate(run_pip_licenses(python.absolute()))
-    write_or_check(OUTPUTS["inventory"], inventory(packages), args.check)
-    write_or_check(OUTPUTS["notices"], notices(packages), args.check)
-    write_or_check(OUTPUTS["sbom"], sbom(packages), args.check)
+    write_or_check(outputs["inventory"], inventory(packages), args.check)
+    write_or_check(outputs["notices"], notices(packages), args.check)
+    write_or_check(outputs["sbom"], sbom(packages), args.check)
     print("License artifacts are current." if args.check else "License artifacts generated.")
 
 

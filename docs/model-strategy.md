@@ -5,9 +5,11 @@
 SenseVoice is the CPU-first default and supports Chinese, English, Japanese,
 Korean, and Cantonese. The pipeline loads:
 
-- `iic/SenseVoiceSmall` for ASR.
-- `fsmn-vad` for long-audio speech segmentation.
-- `cam++` for speaker embeddings and clustering.
+- `iic/SenseVoiceSmall` at the cataloged `master` snapshot for ASR.
+- `iic/speech_fsmn_vad_zh-cn-16k-common-pytorch` at `v2.0.4` for
+  long-audio speech segmentation.
+- `iic/speech_campplus_sv_zh-cn_16k-common` at `v2.0.2` for speaker
+  embeddings and clustering.
 
 SenseVoice inference always uses `use_itn=true`. This selects its native
 `withitn` output mode, which asks SenseVoice itself to emit punctuation and
@@ -19,10 +21,12 @@ normalization.
 
 The `paraformer` alias lazily loads:
 
-- `paraformer-zh` for ASR.
-- `fsmn-vad` for segmentation.
-- `ct-punc` for punctuation.
-- `cam++` for speaker embeddings and clustering.
+- `iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch`
+  at `v2.0.9` for ASR.
+- FSMN-VAD at `v2.0.4` for segmentation.
+- `iic/punc_ct-transformer_cn-en-common-vocab471067-large` at `v2.0.4`
+  for punctuation.
+- CAM++ at `v2.0.2` for speaker embeddings and clustering.
 
 Paraformer uses `spk_mode=punc_segment`. CT-Punc first converts a long VAD
 region into timestamped sentences, then FunASR assigns each sentence the
@@ -37,8 +41,9 @@ details.
 The `fun-asr-nano` alias lazily loads the official, non-quantized
 `FunAudioLLM/Fun-ASR-Nano-2512` checkpoint together with:
 
-- `fsmn-vad`, limited to 30-second speech segments.
-- `cam++` with `spk_mode=vad_segment`.
+- its cataloged `master` snapshot;
+- FSMN-VAD at `v2.0.4`, limited to 30-second speech segments;
+- CAM++ at `v2.0.2` with `spk_mode=vad_segment`.
 
 Nano emits punctuation and inverse text normalization natively, so its
 pipeline does not load `ct-punc`. The locked FunASR 1.3.30 implementation
@@ -54,6 +59,27 @@ additional language model.
 PyTorch CPU is the supported deployment baseline. PyTorch XPU remains an
 experimental device choice for Nano, and this backend does not use OpenVINO,
 vLLM, an NPU runtime, remote model code, or quantized weights.
+
+## Catalog and installation policy
+
+`src/nota_asr_server/model_catalog.json` is the single model inventory used by
+the backend resolver, CLI, Runtime resources, and Manager. It owns full model
+identifiers, upstream revisions and commits, required files, reviewed license
+metadata, expected download sizes, and mutable snapshot digests.
+
+Source, Docker, and systemd deployments retain the legacy `on_demand` policy
+unless they opt into explicit installation. Windows Runtime sets `explicit`:
+all three aliases are visible, but startup never downloads weights. The default
+and preload aliases remain `sensevoice`. Fun-ASR-Nano installation is rejected
+until the caller explicitly acknowledges that its upstream license was not
+declared at the catalog review date.
+
+SenseVoice and Fun-ASR-Nano publish mutable `master` revisions. The catalog
+therefore pins the reviewed upstream commit, file count, and an aggregate
+SHA-256 over sorted `path`, size, and file-SHA records. A changed upstream
+snapshot is treated as catalog drift, not silently accepted. Tagged components
+record the digest produced at installation and re-check it on every explicit
+verification.
 
 ## Speaker Diarization
 

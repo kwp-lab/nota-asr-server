@@ -22,7 +22,36 @@ speaker diarization.
 - Optional Bearer API key authentication.
 - CPU-first deployment plus an optional PyTorch XPU runtime for supported Intel
   GPUs on Windows.
+- A locally built, movable Windows 11 x64 CPU one-folder Runtime and native
+  Manager; the official ordinary-user package is CPU-only and contains no
+  model weights.
 - One inference slot by default.
+
+## Standalone Windows product
+
+Nota Client is not required to install or manage this repository. The Server
+owns a standalone Windows product: a self-contained CPU Runtime and a native
+Manager distributed together as a portable ZIP. Target computers need no
+Python, Git, uv, Rust, Visual Studio, administrator permission, Windows
+service, or `PATH` change. Models are selected and downloaded explicitly after
+extraction and may be stored on another drive.
+
+Developer/owner builds are local by design:
+
+```powershell
+.\scripts\build-windows-runtime.ps1 `
+  -OutputDirectory .\dist\nota-asr-runtime `
+  -PreloadModel sensevoice
+
+.\scripts\build-windows-release.ps1 -Configuration Release
+```
+
+The first command produces an unpacked development one-folder Runtime without
+the Manager. The second requires a clean worktree and formal Manager signing
+configuration, then produces
+`Nota-ASR-Runtime-<version>-Windows-x64-CPU.zip`. Neither command uploads an
+artifact or downloads model weights. See
+[`docs/operations.md`](docs/operations.md) for the CLI/configuration contract.
 
 ## Choose a PyTorch Runtime
 
@@ -113,10 +142,12 @@ The other defaults are sufficient for a first run:
 ```dotenv
 NOTA_PORT=8010
 NOTA_DEVICE=cpu
+NOTA_DEFAULT_MODEL=sensevoice
 NOTA_PRELOAD_MODEL=sensevoice
 NOTA_ENABLED_MODELS=sensevoice,paraformer,fun-asr-nano
 NOTA_MODEL_DIR=./models
 NOTA_DATA_DIR=./data
+NOTA_MODEL_DOWNLOAD_POLICY=on_demand
 NOTA_API_KEYS=
 ```
 

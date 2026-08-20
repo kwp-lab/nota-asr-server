@@ -1,0 +1,17 @@
+schema_version = 1
+
+[server]
+host = "127.0.0.1"
+port = 8010
+log_level = "INFO"
+
+[models]
+root = "../models"
+enabled = ["sensevoice", "paraformer", "fun-asr-nano"]
+default = "sensevoice"
+preload = "{{PRELOAD_MODEL}}"
+download_policy = "explicit"
+
+[storage]
+data_root = "../data"
+temp_root = ""

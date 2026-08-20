@@ -15,6 +15,43 @@ pytest --cov=nota_asr_server
 Contract and API tests use fake backends and must not download models. Real
 model smoke tests are operational checks and run separately.
 
+Windows product changes also require the pinned Rust toolchain checks:
+
+```powershell
+cargo fmt --all -- --check
+cargo test --workspace
+cargo clippy --workspace --all-targets -- -D warnings
+```
+
+The Manager executable is not a standalone artifact: it resolves
+`runtime/python/python.exe` relative to its own directory. To exercise a local
+release build, copy it into an already built one-folder before launching it:
+
+```powershell
+cargo build --release --locked
+Copy-Item .\target\release\NotaASRManager.exe `
+  .\dist\nota-asr-runtime\NotaASRManager.exe
+.\dist\nota-asr-runtime\NotaASRManager.exe `
+  --config .\dist\nota-asr-runtime\config\server.toml
+```
+
+Running `target/release/NotaASRManager.exe` directly is unsupported because
+that directory does not contain the Server Runtime. The release script performs
+this assembly automatically before creating the portable ZIP.
+
+The workspace is fixed to Rust 1.96.0 and commits `Cargo.lock`. A Runtime build
+requires Windows 11 x64, uv 0.9.2, and the frozen `uv.lock`; it installs
+CPython 3.12.12 from uv's `python-build-standalone` distribution and copies
+locked PyTorch/torchaudio 2.11.0 CPU files into an isolated tree. It must not
+link to the build machine's uv cache, source checkout, or Python installation.
+
+The Manager build uses the Windows SDK resource compiler discovered by
+`winresource` to embed its multi-size executable icon. Formal ZIP releases
+require the Windows SDK signing tools to sign the Manager executable. Installer
+development is deferred and is not part of the current release path. Formal
+releases are manual owner actions; CI continues to test source and compliance
+changes but does not build or publish Windows artifacts.
+
 GitHub Actions uses path-scoped checks to limit hosted-runner consumption.
 Changes to `src/`, `tests/`, or the locked Python environment run the automated
 test suite on Linux with the frozen CPU extra. Dependency, container, or legal
@@ -49,6 +86,11 @@ not committed because it may contain API keys; non-secret defaults remain in
 the tracked example. Relative `NOTA_MODEL_DIR` paths are resolved from the
 process working directory, which should be the repository root.
 `NOTA_DATA_DIR` is resolved the same way and is ignored by Git.
+
+With an explicit `--config`, TOML-relative paths and its adjacent `.env` are
+resolved from the configuration directory. Test configuration precedence as
+CLI > process environment > adjacent `.env` > TOML > defaults. Model download
+tests must inject a fake downloader and must not access ModelScope.
 
 ## Change Checklist
 

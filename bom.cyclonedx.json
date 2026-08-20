@@ -1,14 +1,14 @@
 {
   "bomFormat": "CycloneDX",
   "specVersion": "1.6",
-  "serialNumber": "urn:uuid:de10f6a0-4ddb-4723-aa27-3c3ab5560cfe",
+  "serialNumber": "urn:uuid:ae31d51b-6106-48d4-a3dd-c38b5a4ed0c1",
   "version": 1,
   "metadata": {
     "component": {
       "type": "application",
       "bom-ref": "pkg:pypi/nota-asr-server",
       "name": "nota-asr-server",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "licenses": [
         {
           "license": {

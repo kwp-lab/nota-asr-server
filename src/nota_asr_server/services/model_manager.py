@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import os
 import threading
-from collections.abc import Callable
-
 from nota_asr_server.backends import (
     FunAsrNanoBackend,
     ParaformerBackend,
@@ -16,9 +14,7 @@ from nota_asr_server.backends.speaker_embedding import (
 )
 from nota_asr_server.config import Settings
 from nota_asr_server.errors import ModelLoadError, UnknownModelError
-
-
-BackendFactory = Callable[[str], ASRBackend]
+from nota_asr_server.services.model_store import ModelStore
 
 
 class ModelManager:
@@ -26,14 +22,15 @@ class ModelManager:
         self.settings = settings
         self.settings.model_dir.mkdir(parents=True, exist_ok=True)
         os.environ["MODELSCOPE_CACHE"] = str(self.settings.model_dir)
-        self._factories: dict[str, BackendFactory] = {
+        self.model_store = ModelStore(self.settings.model_dir)
+        self._backend_types: dict[str, type[ASRBackend]] = {
             "sensevoice": SenseVoiceBackend,
             "paraformer": ParaformerBackend,
             "fun-asr-nano": FunAsrNanoBackend,
         }
         self._backends: dict[str, ASRBackend] = {}
         self._load_errors: dict[str, str] = {}
-        self._speaker_embedding_backend = SpeakerEmbeddingBackend(settings.device)
+        self._speaker_embedding_backend: SpeakerEmbeddingBackend | None = None
         self._load_lock = threading.RLock()
         self._inference_gate = threading.BoundedSemaphore(
             settings.max_concurrent_inferences
@@ -42,8 +39,26 @@ class ModelManager:
     def preload(self) -> None:
         self.get_backend(self.settings.preload_model)
 
+    def _component_references(
+        self, model: str
+    ) -> dict[str, tuple[str, str | None]]:
+        definition = self.model_store.catalog.model(model)
+        return {
+            key: self.model_store.reference(
+                key, policy=self.settings.model_download_policy
+            )
+            for key in definition.components
+        }
+
+    def _new_backend(self, name: str) -> ASRBackend:
+        backend_type = self._backend_types[name]
+        return backend_type(
+            self.settings.device,
+            self._component_references(name),
+        )
+
     def get_backend(self, name: str) -> ASRBackend:
-        if name not in self.settings.enabled_models or name not in self._factories:
+        if name not in self.settings.enabled_models or name not in self._backend_types:
             raise UnknownModelError(name)
 
         backend = self._backends.get(name)
@@ -53,8 +68,12 @@ class ModelManager:
         with self._load_lock:
             backend = self._backends.get(name)
             if backend is None:
-                backend = self._factories[name](self.settings.device)
-                self._backends[name] = backend
+                try:
+                    backend = self._new_backend(name)
+                    self._backends[name] = backend
+                except Exception as exc:
+                    self._load_errors[name] = str(exc)
+                    raise ModelLoadError(name) from exc
             if not backend.loaded:
                 try:
                     backend.load()
@@ -118,13 +137,23 @@ class ModelManager:
 
     def extract_speaker_embedding(self, audio_path: str) -> tuple[float, ...]:
         with self._inference_gate:
-            return self._speaker_embedding_backend.extract(audio_path)
+            return self._speaker_backend().extract(audio_path)
 
     def analyze_speaker_samples(
         self, audio_paths: list[str]
     ) -> SpeakerSampleAnalysis:
         with self._inference_gate:
-            return self._speaker_embedding_backend.analyze(audio_paths)
+            return self._speaker_backend().analyze(audio_paths)
+
+    def _speaker_backend(self) -> SpeakerEmbeddingBackend:
+        if self._speaker_embedding_backend is None:
+            reference = self.model_store.reference(
+                "campplus", policy=self.settings.model_download_policy
+            )
+            self._speaker_embedding_backend = SpeakerEmbeddingBackend(
+                self.settings.device, reference
+            )
+        return self._speaker_embedding_backend
 
     @property
     def ready(self) -> bool:
@@ -144,7 +173,7 @@ class ModelManager:
         for name in self.settings.enabled_models:
             backend = self._backends.get(name)
             if backend is None:
-                backend = self._factories[name](self.settings.device)
+                backend = self._backend_types[name](self.settings.device)
             capabilities = backend.capabilities
             items.append(
                 {

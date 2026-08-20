@@ -33,3 +33,23 @@ technical logs.
 The application is not a multi-tenant authorization system. Deploy separate
 instances or add tenant-aware storage, quotas, audit logs, and key ownership
 before serving unrelated organizations.
+
+## Windows Manager boundary
+
+The Windows Runtime template binds only to `127.0.0.1`. The Manager warns when
+an operator manually chooses a non-loopback host; it does not add a firewall
+rule or imply that a LAN listener is protected. API keys are never written to
+`server.toml`, Manager state, uninstall metadata, diagnostics, or manifests.
+
+The Manager starts the Server with a per-process random shutdown token. That
+token exists only in the child environment and a private request header used
+for graceful shutdown; the internal endpoint is excluded from OpenAPI and
+returns 404 without the matching token. The child console is hidden, technical
+stdout/stderr are size-rotated, and Manager exit closes a kill-on-close Job
+Object after the graceful timeout. An external process answering on the target
+port is displayed but never terminated.
+
+Neither JSON diagnostics nor logs may contain audio, transcript text,
+authorization headers, API keys, or the shutdown token. Runtime and release
+manifests contain versions, Git identity, build mode, architecture, sizes, and
+hashes only.

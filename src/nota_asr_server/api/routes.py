@@ -75,7 +75,7 @@ async def transcribe(
     speaker_count: Annotated[int | None, Form(ge=1, le=64)] = None,
 ) -> JSONResponse:
     settings = request.app.state.settings
-    selected_model = model or settings.preload_model
+    selected_model = model or settings.default_model
     if response_format not in {"json", "verbose_json"}:
         raise APIError(
             400,
@@ -147,4 +147,3 @@ async def transcribe(
         raise APIError(413, "upload_too_large", "The uploaded file exceeds the size limit") from exc
     finally:
         remove_file(temp_path)
-

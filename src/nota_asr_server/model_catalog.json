@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "components": {
+    "sensevoice-small": {
+      "model_id": "iic/SenseVoiceSmall",
+      "revision": "master",
+      "upstream_commit": "7bf452403abd7353a300cd760f7adae7701c92c1",
+      "snapshot_sha256": "21c31d732c0c590d8b3219158db303c89e821a697532bfb7270166733ca0a140",
+      "file_count": 20,
+      "download_bytes": 940019376,
+      "required_files": ["configuration.json", "config.yaml", "model.pt"],
+      "license": "Apache-2.0",
+      "license_url": "https://modelscope.cn/models/iic/SenseVoiceSmall"
+    },
+    "paraformer-seaco": {
+      "model_id": "iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch",
+      "revision": "v2.0.9",
+      "upstream_commit": "a808b9b79a0aa4b5d55e33ae2b20afee89e46391",
+      "snapshot_sha256": null,
+      "file_count": null,
+      "download_bytes": 999000000,
+      "required_files": ["configuration.json", "config.yaml", "model.pt"],
+      "license": "Apache-2.0",
+      "license_url": "https://modelscope.cn/models/iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch"
+    },
+    "fsmn-vad": {
+      "model_id": "iic/speech_fsmn_vad_zh-cn-16k-common-pytorch",
+      "revision": "v2.0.4",
+      "upstream_commit": "662fc7a38813d81305085696d59eb5b1141a204a",
+      "snapshot_sha256": null,
+      "file_count": null,
+      "download_bytes": 4050000,
+      "required_files": ["configuration.json", "config.yaml", "model.pt"],
+      "license": "Apache-2.0",
+      "license_url": "https://modelscope.cn/models/iic/speech_fsmn_vad_zh-cn-16k-common-pytorch"
+    },
+    "ct-punc": {
+      "model_id": "iic/punc_ct-transformer_cn-en-common-vocab471067-large",
+      "revision": "v2.0.4",
+      "upstream_commit": "a1682460044984d8920d56ee8c63d0c82374d00c",
+      "snapshot_sha256": null,
+      "file_count": null,
+      "download_bytes": 1187000000,
+      "required_files": ["configuration.json", "config.yaml", "model.pt"],
+      "license": "Apache-2.0",
+      "license_url": "https://modelscope.cn/models/iic/punc_ct-transformer_cn-en-common-vocab471067-large"
+    },
+    "campplus": {
+      "model_id": "iic/speech_campplus_sv_zh-cn_16k-common",
+      "revision": "v2.0.2",
+      "upstream_commit": "930086088e5c5fa8a3f911c20795ca72f7f16397",
+      "snapshot_sha256": null,
+      "file_count": null,
+      "download_bytes": 29150000,
+      "required_files": ["configuration.json", "config.yaml", "campplus_cn_common.bin"],
+      "license": "Apache-2.0",
+      "license_url": "https://modelscope.cn/models/iic/speech_campplus_sv_zh-cn_16k-common"
+    },
+    "fun-asr-nano-2512": {
+      "model_id": "FunAudioLLM/Fun-ASR-Nano-2512",
+      "revision": "master",
+      "upstream_commit": "05201c46f1c38592b1567f857c0d56eab3d0d8ef",
+      "snapshot_sha256": "e6d1cf2a79a027f22c1e9e966e3ffb19d3450b3388209ac797d1bdd13b2e9669",
+      "file_count": 21,
+      "download_bytes": 2145456424,
+      "required_files": ["configuration.json", "config.yaml", "model.pt"],
+      "license": "undeclared",
+      "license_url": "https://modelscope.cn/models/FunAudioLLM/Fun-ASR-Nano-2512"
+    }
+  },
+  "models": {
+    "sensevoice": {
+      "display_name": "SenseVoiceSmall",
+      "components": ["sensevoice-small", "fsmn-vad", "campplus"],
+      "license": "Apache-2.0",
+      "requires_license_acknowledgement": false
+    },
+    "paraformer": {
+      "display_name": "Paraformer SeACo",
+      "components": ["paraformer-seaco", "fsmn-vad", "ct-punc", "campplus"],
+      "license": "Apache-2.0",
+      "requires_license_acknowledgement": false
+    },
+    "fun-asr-nano": {
+      "display_name": "Fun-ASR-Nano-2512",
+      "components": ["fun-asr-nano-2512", "fsmn-vad", "campplus"],
+      "license": "undeclared",
+      "requires_license_acknowledgement": true
+    }
+  }
+}

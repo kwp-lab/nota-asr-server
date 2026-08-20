@@ -32,6 +32,21 @@ packages. It uses pinned `pip-licenses 5.5.5`, applies
 - `THIRD_PARTY_NOTICES.txt`: full installed license texts;
 - `bom.cyclonedx.json`: CycloneDX 1.6 Python production SBOM.
 
+The portable Windows CPU Runtime is a separate release inventory. Its local
+builder calls the same policy generator with `--output-dir` against the
+self-contained Windows interpreter and writes Windows-specific
+`THIRD_PARTY_LICENSES.md`, `THIRD_PARTY_NOTICES.txt`, and
+`bom.cyclonedx.json` under the Runtime's `legal/` directory. Those files must
+not replace or masquerade as the committed Linux CPU inventory.
+
+The release builder also records CPython 3.12.12 from Astral
+`python-build-standalone`, the uv version used to assemble it, and the bundled
+project license/notice. `cargo metadata --locked` drives a separate Rust
+Manager inventory, full available crate license texts/notices, and CycloneDX
+SBOM. Windows PowerShell compression and Windows SDK signing tools are build
+tools and are recorded in the release manifest rather than merged into either
+dependency graph. They are not distributed as dependencies inside the ZIP.
+
 CI recreates the environment with `--frozen` and fails when policy or generated
 files differ. Unknown, AGPL, SSPL, BUSL, GPL-3.0, and unreviewed LGPL packages
 must not be accepted implicitly. A necessary exception must name one exact
@@ -51,6 +66,9 @@ text.
   licenses and CVEs. A source checkout or Python SBOM is not a substitute.
 - Model snapshots are downloaded at runtime and governed by
   `MODEL_LICENSES.md`; they are never relicensed as MIT by this project.
+- The portable Windows ZIP embeds the complete CPU Runtime and the native
+  Manager but no model snapshot. Its Python, Rust, CPython, project, and
+  model-guidance files remain visibly separate under `legal/`.
 
 ```mermaid
 flowchart LR
@@ -61,4 +79,9 @@ flowchart LR
     N --> D["Docker application layer"]
     D --> O["Separate final-image SBOM before publication"]
     M["Runtime model downloads"] --> ML["MODEL_LICENSES.md review"]
+    L --> WR["Windows locked CPU environment"]
+    WR --> WN["Windows Python notices + SBOM"]
+    C["Cargo.lock + cargo metadata"] --> RN["Manager notices + Rust SBOM"]
+    WN --> Z["Portable Windows ZIP"]
+    RN --> Z
 ```
