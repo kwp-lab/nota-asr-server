@@ -7,7 +7,7 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-08-19
+## [0.3.0] - 2026-08-22
 
 ### Fixed
 
@@ -74,6 +74,9 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ### Changed
 
+- Allowed owner-built public portable ZIP releases to be explicitly unsigned
+  with `-UnsignedRelease`, while publishing a SHA-256 checksum and manifest that
+  disclose the signature policy and documenting Windows publisher warnings.
 - Redesigned the native Manager as a dark two-column control room with models
   beside the primary live-log workspace, removed the duplicated Server summary,
   moved collapsed-on-start settings below the model list, and surfaced the

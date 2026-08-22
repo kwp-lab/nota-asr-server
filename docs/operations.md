@@ -113,17 +113,21 @@ and data roots on an absolute external path so the new Runtime can reuse them.
 The owner-only release command is:
 
 ```powershell
-.\scripts\build-windows-release.ps1 -Configuration Release
+.\scripts\build-windows-release.ps1 -Configuration Release -UnsignedRelease
 ```
 
 It requires a clean worktree, an empty `[Unreleased]` section, and a dated
 Changelog entry matching the current version. It builds the Runtime and
 Manager, produces Windows-specific Python/Rust notices and SBOMs, runs an
-offline diagnostic, signs the Manager, and creates
+offline diagnostic, and creates
 `Nota-ASR-Runtime-<version>-Windows-x64-CPU.zip` with a SHA-256 and release
-manifest. `-UnsignedDevelopmentBuild` is intentionally available only for
-local package testing. The script does not build an installer, upload files,
-create a tag or release, or run in CI.
+manifest. `-UnsignedRelease` explicitly selects the supported unsigned public
+portable-package policy; the manifest records `manager_signed: false` and
+`signature_policy: unsigned-public`. The checksum proves byte integrity but not
+publisher identity, so release notes must disclose possible Windows
+unknown-publisher or SmartScreen warnings. Omit the switch only when a configured
+Authenticode certificate will sign and verify the Manager. The script does not
+build an installer, upload files, create a tag or release, or run in CI.
 
 ## systemd
 

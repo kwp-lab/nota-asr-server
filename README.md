@@ -124,6 +124,17 @@ administrator permission, a Windows service, or a `PATH` change. The Manager
 downloads models only after an explicit user action. Its current interface is
 Simplified Chinese.
 
+Current portable releases are intentionally unsigned. Windows may show an
+unknown-publisher or SmartScreen warning when `NotaASRManager.exe` first runs.
+Download only from this repository's GitHub Releases page and compare the ZIP
+with the published `.sha256` file:
+
+```powershell
+Get-FileHash .\Nota-ASR-Runtime-<version>-Windows-x64-CPU.zip -Algorithm SHA256
+```
+
+The checksum verifies file integrity; it is not a publisher identity signature.
+
 The portable configuration binds to `127.0.0.1:8010` by default. The Manager
 can change the port, model location, data location, default model, and preload
 model. Moving the Runtime does not invalidate an absolute external model path.
@@ -350,16 +361,19 @@ Create an unpacked one-folder Runtime for local development and inspection:
 
 This output intentionally excludes the Manager and ZIP. The owner-local release
 entry point builds the Runtime and Manager, generates Windows-specific legal
-artifacts, performs offline checks, signs the Manager, and packages one ZIP:
+artifacts, performs offline checks, and packages one ZIP. The current public
+portable release policy is explicitly unsigned:
 
 ```powershell
-.\scripts\build-windows-release.ps1 -Configuration Release
+.\scripts\build-windows-release.ps1 -Configuration Release -UnsignedRelease
 ```
 
 It creates `Nota-ASR-Runtime-<version>-Windows-x64-CPU.zip` under ignored
 `dist/`. It does not upload files, create a Git tag or GitHub Release, download
-model weights, or run in CI. Formal public packages must be code-signed; use
-`-UnsignedDevelopmentBuild` only for local package testing.
+model weights, or run in CI. The build also emits a `.sha256` file and release
+manifest that record the exact artifact bytes and unsigned signature policy.
+Omit `-UnsignedRelease` only after configuring an Authenticode certificate via
+`NOTA_SIGN_CERT_SHA1` or `NOTA_SIGN_PFX_PATH`.
 
 ### Engineering documentation
 

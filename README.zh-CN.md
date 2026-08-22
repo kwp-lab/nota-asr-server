@@ -119,6 +119,16 @@ flowchart LR
 权限；程序不会注册 Windows 服务或修改 `PATH`。只有用户明确点击安装后 Manager
 才会下载模型。Manager 当前提供简体中文界面。
 
+当前便携版有意不进行代码签名。首次运行 `NotaASRManager.exe` 时，Windows 可能显示
+“未知发布者”或 SmartScreen 提示。请只从本仓库的 GitHub Releases 页面下载，并将
+ZIP 与同时发布的 `.sha256` 文件进行比对：
+
+```powershell
+Get-FileHash .\Nota-ASR-Runtime-<version>-Windows-x64-CPU.zip -Algorithm SHA256
+```
+
+SHA-256 用于确认文件内容没有变化，不代表发布者身份签名。
+
 便携版默认监听 `127.0.0.1:8010`。你可以在 Manager 中修改端口、模型目录、数据
 目录、默认模型和预加载模型。使用绝对路径配置外置模型目录后，移动 Runtime 不会
 影响已有模型的复用。
@@ -326,16 +336,19 @@ docs/       架构、API、运维、安全、模型策略和 ADR
 ```
 
 这个产物有意不包含 Manager 和 ZIP。owner 的本地发布入口会构建 Runtime 与
-Manager、生成 Windows 专用合规文件、执行离线检查、签名 Manager，并生成一个 ZIP：
+Manager、生成 Windows 专用合规文件、执行离线检查并生成一个 ZIP。当前公开便携版
+采用明确选择的无签名发布策略：
 
 ```powershell
-.\scripts\build-windows-release.ps1 -Configuration Release
+.\scripts\build-windows-release.ps1 -Configuration Release -UnsignedRelease
 ```
 
 产物为忽略目录 `dist/` 下的
 `Nota-ASR-Runtime-<version>-Windows-x64-CPU.zip`。脚本不会上传文件、创建 Git
-tag 或 GitHub Release、下载模型权重，也不会在 CI 中运行。正式公开包必须完成
-代码签名；`-UnsignedDevelopmentBuild` 只用于本地打包测试。
+tag 或 GitHub Release、下载模型权重，也不会在 CI 中运行。构建同时生成 `.sha256`
+文件和 release manifest，记录准确的产物指纹及无签名策略。以后配置
+`NOTA_SIGN_CERT_SHA1` 或 `NOTA_SIGN_PFX_PATH` 后，可以省略 `-UnsignedRelease` 来生成
+Authenticode 签名版本。
 
 ### 工程文档
 

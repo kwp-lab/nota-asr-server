@@ -43,8 +43,8 @@ The release builder also records CPython 3.12.12 from Astral
 `python-build-standalone`, the uv version used to assemble it, and the bundled
 project license/notice. `cargo metadata --locked` drives a separate Rust
 Manager inventory, full available crate license texts/notices, and CycloneDX
-SBOM. Windows PowerShell compression and Windows SDK signing tools are build
-tools and are recorded in the release manifest rather than merged into either
+SBOM. Windows PowerShell compression and, when used, Windows SDK signing tools
+are build tools recorded in the release manifest rather than merged into either
 dependency graph. They are not distributed as dependencies inside the ZIP.
 
 CI recreates the environment with `--frozen` and fails when policy or generated

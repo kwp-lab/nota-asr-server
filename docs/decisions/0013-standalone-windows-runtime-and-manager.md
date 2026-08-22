@@ -58,7 +58,8 @@ flowchart LR
 - The ordinary release target is CPU-only and online-model-only. XPU packages,
   Windows services, automatic updates, remote management, and release CI are
   outside this decision.
-- Formal Setup artifacts must be signed. Local development can explicitly build
-  an unsigned installer for testing, but the repository never uploads it.
+- The superseded Setup plan's signing requirement does not apply to the official
+  portable ZIP defined by ADR 0014. Any future installer must define its own
+  publisher-identity and upgrade policy before becoming an official artifact.
 - Windows Python, Rust, CPython standalone, NSIS, and model inventories remain
   separate compliance boundaries.

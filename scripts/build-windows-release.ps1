@@ -3,7 +3,8 @@ param(
     [ValidateSet("Release")]
     [string]$Configuration = "Release",
 
-    [switch]$UnsignedDevelopmentBuild
+    [Alias("UnsignedDevelopmentBuild")]
+    [switch]$UnsignedRelease
 )
 
 $ErrorActionPreference = "Stop"
@@ -44,8 +45,8 @@ if (-not $unreleased.Success -or -not [string]::IsNullOrWhiteSpace($unreleased.G
 
 $hasStoreCertificate = -not [string]::IsNullOrWhiteSpace($env:NOTA_SIGN_CERT_SHA1)
 $hasPfxCertificate = -not [string]::IsNullOrWhiteSpace($env:NOTA_SIGN_PFX_PATH)
-if (-not $UnsignedDevelopmentBuild -and -not ($hasStoreCertificate -or $hasPfxCertificate)) {
-    throw "A formal release must be signed. Configure NOTA_SIGN_CERT_SHA1 or NOTA_SIGN_PFX_PATH, or pass -UnsignedDevelopmentBuild for local testing."
+if (-not $UnsignedRelease -and -not ($hasStoreCertificate -or $hasPfxCertificate)) {
+    throw "No code-signing certificate is configured. Configure NOTA_SIGN_CERT_SHA1 or NOTA_SIGN_PFX_PATH, or explicitly pass -UnsignedRelease for a public unsigned portable package."
 }
 
 function Get-SignTool {
@@ -64,7 +65,7 @@ function Get-SignTool {
 }
 
 function Invoke-CodeSign([string]$Path) {
-    if ($UnsignedDevelopmentBuild) { return }
+    if ($UnsignedRelease) { return }
     $signTool = Get-SignTool
     $timestampUrl = if ($env:NOTA_SIGN_TIMESTAMP_URL) { $env:NOTA_SIGN_TIMESTAMP_URL } else { "http://timestamp.digicert.com" }
     $arguments = @("sign", "/fd", "SHA256", "/tr", $timestampUrl, "/td", "SHA256")
@@ -123,7 +124,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Manager compliance generation failed." }
 
     $signToolVersion = "not-used"
-    if (-not $UnsignedDevelopmentBuild) {
+    if (-not $UnsignedRelease) {
         $signToolVersion = (Get-Item -LiteralPath (Get-SignTool)).VersionInfo.FileVersion
     }
 
@@ -165,7 +166,8 @@ try {
         artifact_format = "portable-zip"
         platform = "windows-x64"
         runtime = "cpu-online"
-        manager_signed = -not [bool]$UnsignedDevelopmentBuild
+        manager_signed = -not [bool]$UnsignedRelease
+        signature_policy = if ($UnsignedRelease) { "unsigned-public" } else { "authenticode" }
         sha256 = $sha256
         bytes = [long]$zipItem.Length
         git_commit = (git -C $RepoRoot rev-parse HEAD).Trim()

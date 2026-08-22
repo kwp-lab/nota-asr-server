@@ -46,8 +46,10 @@ locked PyTorch/torchaudio 2.11.0 CPU files into an isolated tree. It must not
 link to the build machine's uv cache, source checkout, or Python installation.
 
 The Manager build uses the Windows SDK resource compiler discovered by
-`winresource` to embed its multi-size executable icon. Formal ZIP releases
-require the Windows SDK signing tools to sign the Manager executable. Installer
+`winresource` to embed its multi-size executable icon. Public portable ZIP
+releases may be built unsigned by explicitly passing `-UnsignedRelease`; this
+keeps the absence of an Authenticode publisher identity visible in the release
+manifest. A certificate remains optional for portable packages. Installer
 development is deferred and is not part of the current release path. Formal
 releases are manual owner actions; CI continues to test source and compliance
 changes but does not build or publish Windows artifacts.
