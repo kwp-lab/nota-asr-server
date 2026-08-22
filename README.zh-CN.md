@@ -1,185 +1,184 @@
-# Nota ASR Server
+<h1 align="center">Nota ASR Server</h1>
+
+<p align="center">
+  <strong>面向会议录音的自托管语音转文字服务。</strong>
+</p>
+
+<p align="center">
+  兼容 OpenAI API，支持说话人分离，可通过 Windows 便携包或 Docker 轻松运行。<br>
+  为 Nota 深度适配，也可以被任何兼容 OpenAI 转写接口的客户端调用。
+</p>
 
 <p align="center">
   <a href="README.md">English</a> · 简体中文
 </p>
 
-Nota ASR Server 是为 Nota Windows 会议录音客户端提供语音转写能力的服务端。
-它同时提供兼容 OpenAI 的转写接口和 Nota 专用的可恢复批处理协议，并把
-SenseVoice、Paraformer、Fun-ASR-Nano 的输出统一为稳定的响应结构，同时使用
-CAM++ 完成说话人分离。
+<p align="center">
+  <a href="https://github.com/kwp-lab/nota-asr-server/actions/workflows/tests.yml"><img alt="测试状态" src="https://github.com/kwp-lab/nota-asr-server/actions/workflows/tests.yml/badge.svg?branch=main"></a>
+  <a href="https://github.com/kwp-lab/nota-asr-server/actions/workflows/compliance.yml"><img alt="合规检查" src="https://github.com/kwp-lab/nota-asr-server/actions/workflows/compliance.yml/badge.svg?branch=main"></a>
+  <img alt="许可证：MIT" src="https://img.shields.io/badge/license-MIT-2F7D71?style=flat-square">
+  <img alt="Python：3.10–3.12" src="https://img.shields.io/badge/Python-3.10%E2%80%933.12-3776AB?style=flat-square&logo=python&logoColor=white">
+  <img alt="平台：Windows 11 x64" src="https://img.shields.io/badge/Windows-11%20x64-0078D4?style=flat-square&logo=windows11&logoColor=white">
+  <img alt="Docker：CPU" src="https://img.shields.io/badge/Docker-CPU-2496ED?style=flat-square&logo=docker&logoColor=white">
+  <img alt="API：兼容 OpenAI" src="https://img.shields.io/badge/API-OpenAI--compatible-412991?style=flat-square&logo=openai&logoColor=white">
+</p>
 
-## 当前支持范围
+<p align="center">
+  <a href="#quick-start"><strong>快速开始</strong></a>
+  ·
+  <a href="#windows-portable">Windows 便携包</a>
+  ·
+  <a href="#api-example">API 示例</a>
+  ·
+  <a href="#development">从源码构建</a>
+</p>
 
-- 转写已经录制完成的会议；当前版本不提供实时或流式 ASR。
-- 默认使用 SenseVoice，也可以按需加载 Paraformer 和 Fun-ASR-Nano。
-- 提供 `speaker_0`、`speaker_1` 这类会议内说话人标签。
-- Nota 任务支持断点续传，上传和推理进度可在服务重启后恢复。
-- 提供兼容 OpenAI 的 `POST /v1/audio/transcriptions` 接口，支持 `json`
-  和 `verbose_json` 响应。
-- 支持可选的 Bearer API Key 认证。
-- 默认针对 CPU 部署，同时支持在 Windows 上通过 PyTorch XPU 使用兼容的
-  Intel 核显。
-- 可在本地构建可移动的 Windows 11 x64 CPU one-folder Runtime 和原生
-  Manager；面向普通用户的官方包仅提供 CPU 版，且不包含模型权重。
-- 默认使用一个推理并发槽位。
+<p align="center">
+  <img src="docs/assets/nota-asr-manager-overview.jpg" width="1100" alt="Nota ASR Manager 展示 Server 控制、已安装的语音识别模型、设置和实时日志">
+</p>
 
-## Windows 独立产品
+## 为什么选择 Nota ASR Server？
 
-Nota Client 不需要安装或管理本仓库。Server 仓库自行拥有完整的 Windows
-产品：自包含 CPU Runtime 和原生 Manager，两者通过便携 ZIP 一起分发。
-目标电脑无需 Python、Git、uv、Rust、Visual Studio 或管理员权限，也不会注册
-Windows 服务、修改 `PATH`。模型在解压后由用户明确选择和下载，可以存放到
-D 盘等其他磁盘。
+Nota ASR Server 可以把已经录制完成的会议音频转成结构化文本，不要求依赖托管式
+转写平台。你可以把它运行在自己的 Windows 电脑、Docker、局域网中的另一台机器，
+或者完全由自己控制的服务器上。
 
-开发者和 owner 只在本机执行构建：
+服务端同时提供常见的 OpenAI 音频转写接口和面向 Nota 长录音的可恢复协议。
+SenseVoice、Paraformer 和 Fun-ASR-Nano 都会经过统一的模型适配层，向调用方返回
+稳定的响应结构、时间戳和可选的会议内说话人标签。
 
-```powershell
-.\scripts\build-windows-runtime.ps1 `
-  -OutputDirectory .\dist\nota-asr-runtime `
-  -PreloadModel sensevoice
+Nota ASR Server 是
+[Nota 本地优先会议录音客户端](https://github.com/kwp-lab/nota)推荐使用的转写后端，
+但它是一个可以独立安装、运行和升级的产品。不安装 Nota Client 也可以使用；任何
+能够调用兼容 OpenAI 转写接口的客户端都可以直接连接它。
 
-.\scripts\build-windows-release.ps1 -Configuration Release
+## 核心能力
+
+| | |
+|---|---|
+| **兼容 OpenAI API** | 可通过 `POST /v1/audio/transcriptions` 接入现有工具和应用。 |
+| **三种 ASR 模型** | 通过稳定别名使用 SenseVoice、Paraformer SeACo 或 Fun-ASR-Nano。 |
+| **说话人分离** | 通过 CAM++ 输出 `speaker_0`、`speaker_1` 等会议内匿名标签。 |
+| **可恢复的会议任务** | 长录音分窗口处理，上传和推理进度可在正常重启后继续。 |
+| **原生 Windows Manager** | 在一个 GUI 中配置目录、安装模型、控制 Server、诊断问题和查看日志。 |
+| **自托管部署** | 支持 Windows 便携 Runtime、Docker Compose、Python 环境和 systemd。 |
+| **稳定的模型边界** | 不把不同模型的原始输出直接暴露给 API 调用方。 |
+| **可选身份验证** | 可通过 Bearer API Key 保护局域网或远程部署。 |
+
+## 工作方式
+
+```mermaid
+flowchart LR
+    A["Nota Client"] --> D["Nota 批处理 API"]
+    B["兼容 OpenAI 的客户端"] --> E["音频转写 API"]
+    D --> F["可恢复的会议任务"]
+    E --> G["模型适配层"]
+    F --> G
+    G --> H["SenseVoice / Paraformer / Nano"]
+    H --> I["统一文本<br>时间戳 + 说话人"]
 ```
 
-第一条命令生成不含 Manager 的未压缩开发调试 one-folder。第二条命令要求工作树
-干净，并准备好 Manager 正式签名配置，然后生成
-`Nota-ASR-Runtime-<version>-Windows-x64-CPU.zip`。两条命令都不会上传产物，也不会
-下载模型权重。CLI 与配置约定参见
-[`docs/operations.md`](docs/operations.md)。
+兼容 OpenAI 的接口处理单次完整文件上传。Nota 专用协议会断点续传原始 Ogg
+录音，以有限长度的窗口执行推理，最后在整场会议范围内统一说话人标签。模型原始
+输出不会直接成为公开 API 契约。
 
-## 选择 PyTorch 运行环境
+## 选择运行方式
 
-| 使用目标 | PyTorch 构建 | `NOTA_DEVICE` |
-| --- | --- | --- |
-| 安装最简单、兼容性最好 | CPU 版 | `cpu` |
-| 把推理负载转移到兼容的 Intel 核显 | XPU 版 | `xpu:0` |
-| 在支持 XPU 的环境中改用 CPU | XPU 版 | `cpu` |
+| 你的需求 | 推荐方式 | 是否需要开发环境 |
+|---|---|---|
+| 普通 Windows 用户，希望通过 GUI 管理 | [便携 ZIP + Manager](#windows-portable) | 不需要 |
+| 在本地或远程运行容器 | [Docker Compose](#docker-compose) | 需要 Docker |
+| 从源码直接运行 Server | [Python 源码环境](#run-from-source) | 需要 Git 和 Python |
+| 修改 Server 或 Manager | [开发与二次开发](#development) | 需要 Python；修改 Manager 还需要 Rust |
 
-CPU 版 PyTorch 不能使用 XPU；XPU 版同时支持 CPU 和 XPU。因此，在 XPU
-环境中只需修改 `NOTA_DEVICE` 并重启服务，就能在两个设备之间切换，不必重新
-安装 PyTorch。同一个虚拟环境只能安装一种 PyTorch 构建；如果需要同时保留两种
-安装，建议分别使用 `.venv` 和 `.venv-xpu`。
+官方预构建目标只提供 Windows 11 x64、CPU 版 PyTorch Runtime。模型权重不会
+进入 Runtime、容器镜像或 Git 仓库。
 
-下面首先介绍 CPU，是因为这条默认路径对驱动和硬件的要求最少。Intel 核显是
-正式支持的可选运行路径，具体步骤参见
-[Windows + Intel XPU](#windows--intel-xpu)。XPU 适合降低 CPU 占用，但不保证
-每个模型和每段录音都能获得更低的推理延迟。
+<a id="quick-start"></a>
 
-## 快速开始：Windows + CPU
+## 快速开始
 
-这是在本机运行服务最简单的受支持方式。不需要 Docker、独立显卡、
-OpenVINO，也不要求激活 PowerShell 虚拟环境。
+<a id="windows-portable"></a>
 
-### 1. 准备环境
+### Windows 便携包——推荐
 
-请先安装：
+便携 ZIP 通过
+[GitHub Releases](https://github.com/kwp-lab/nota-asr-server/releases) 发布。
+如果 Releases 页面暂时没有产物，请使用 Docker、从源码运行，或者通过文档中的
+本地发布脚本构建 owner 自用包。
 
-- Windows 11 x64；
-- [Git](https://git-scm.com/download/win)；
-- 64 位 [Python 3.12](https://www.python.org/downloads/windows/)；项目也支持
-  Python 3.10 和 3.11；
-- 首次安装 Python 依赖和下载模型所需的网络连接。
+1. 下载 `Nota-ASR-Runtime-<version>-Windows-x64-CPU.zip`，将完整目录解压到
+   一个可写位置。
+2. 双击 `NotaASRManager.exe`。
+3. 确认模型目录和数据目录；它们可以放到 `D:\NotaASR` 等其他磁盘。
+4. 安装推荐的默认模型 **SenseVoiceSmall**。
+5. 点击 **启动 Server**，等待顶部状态变为 Server 正在运行。
 
-安装 Python 时可以勾选 **Add Python to PATH**，也可以直接使用下面命令中的
-Python Launcher（`py`）。
+目标电脑不需要安装系统 Python、Git、uv、Rust、Visual Studio，也不需要管理员
+权限；程序不会注册 Windows 服务或修改 `PATH`。只有用户明确点击安装后 Manager
+才会下载模型。Manager 当前提供简体中文界面。
 
-### 2. 克隆仓库并创建虚拟环境
+便携版默认监听 `127.0.0.1:8010`。你可以在 Manager 中修改端口、模型目录、数据
+目录、默认模型和预加载模型。使用绝对路径配置外置模型目录后，移动 Runtime 不会
+影响已有模型的复用。
 
-打开 PowerShell：
+### Docker Compose
 
-```powershell
+当前容器只提供 CPU 运行环境。克隆仓库后通过 Docker Compose 启动：
+
+```bash
 git clone https://github.com/kwp-lab/nota-asr-server.git
-Set-Location .\nota-asr-server
-
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
+cd nota-asr-server
+docker compose up --build
 ```
 
-如果代码已经在本机，只需进入仓库目录，不要重复执行 `git clone`。
+服务会发布到 `http://127.0.0.1:8010`。Compose 将 `./models` 和 `./data`
+挂载到容器中，因此重建容器不会丢失模型下载和未完成任务。
 
-### 3. 安装 CPU 版 PyTorch 和服务端
-
-先明确安装 CPU 版 PyTorch，避免 pip 隐式选择其他设备版本：
+如需设置 API Key 或修改宿主机端口：
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install `
-  torch torchaudio --index-url https://download.pytorch.org/whl/cpu
-
-.\.venv\Scripts\python.exe -m pip install -e .
+$env:NOTA_API_KEYS = "replace-with-a-long-random-value"
+$env:NOTA_HOST_PORT = "9010"
+docker compose up --build
 ```
 
-这里有意使用可编辑安装。对于源码仓库，修改 Python 代码后服务会直接使用当前
-代码，不需要每次重新安装整个项目。
+跨电脑部署前请阅读[运维文档](docs/operations.md)；向不受信任的网络开放服务前，
+请阅读[安全指南](docs/security.md)。
 
-### 4. 创建本地配置
-
-```powershell
-Copy-Item .env.example .env
-```
-
-如果服务只供这台电脑使用，请打开 `.env`，把监听地址改成：
-
-```dotenv
-NOTA_HOST=127.0.0.1
-```
-
-仓库中的示例值为 `0.0.0.0`，它适合需要由局域网中其他电脑访问的场景。
-监听 `0.0.0.0` 可能会把端口暴露到网络，因此在这样做之前应配置
-`NOTA_API_KEYS` 和防火墙规则。
-
-首次运行可以继续使用其余默认值：
-
-```dotenv
-NOTA_PORT=8010
-NOTA_DEVICE=cpu
-NOTA_DEFAULT_MODEL=sensevoice
-NOTA_PRELOAD_MODEL=sensevoice
-NOTA_ENABLED_MODELS=sensevoice,paraformer,fun-asr-nano
-NOTA_MODEL_DIR=./models
-NOTA_DATA_DIR=./data
-NOTA_MODEL_DOWNLOAD_POLICY=on_demand
-NOTA_API_KEYS=
-```
-
-不要提交 `.env`，因为其中可能包含 API Key。
-
-### 5. 启动服务
-
-请在仓库根目录执行：
-
-```powershell
-.\.venv\Scripts\nota-asr-server.exe
-```
-
-保持这个终端窗口运行。首次启动时，FunASR 会把 SenseVoice、FSMN-VAD 和
-CAM++ 下载到 `.\models`，然后加载 SenseVoice。具体时间取决于网络和 CPU，
-可能需要几分钟；以后启动时会复用已经下载的文件。
-
-请等待终端显示应用启动完成。模型加载期间 HTTP 端口可能还无法连接。如果预加载
-失败，服务进程可能仍在运行，但就绪检查会返回具体的模型错误。需要停止服务时，
-在这个终端中按 `Ctrl+C`。
-
-### 6. 检查服务和模型是否就绪
-
-打开第二个 PowerShell 窗口：
+### 验证服务
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8010/health
 Invoke-RestMethod http://127.0.0.1:8010/ready | ConvertTo-Json
 ```
 
-第一个响应应包含 `"status": "ok"`。开始转写前，第二个响应必须包含
-`"status": "ready"`。
+`/health` 用来确认 HTTP 进程存活。只有配置的预加载模型已经可用时，`/ready`
+才会返回 HTTP 200。启动后还可以访问
+[http://127.0.0.1:8010/docs](http://127.0.0.1:8010/docs) 查看交互式 API 文档。
 
-也可以打开 [http://127.0.0.1:8010/docs](http://127.0.0.1:8010/docs)
-查看交互式 API 文档。
+## 使用 Nota ASR Server
 
-### 7. 转写第一个音频文件
+### 通过 Manager 管理 Windows Server
 
-把下面的路径替换为真实的 WAV、Ogg、MP3、FLAC 或其他可由
-libsndfile/FunASR 读取的音频文件。请使用 `curl.exe`，避免调用 PowerShell
-历史版本中的 `curl` 别名：
+Nota ASR Manager 是随便携 Runtime 分发的原生 Rust 应用，提供：
+
+- 显式下载、校验、取消和续传模型；
+- 启动、停止、重启 Server，并检查健康状态和识别外部进程；
+- 配置模型目录、数据目录、端口、默认模型和预加载模型；
+- 将已有模型迁移到新目录，验证目标文件并保留原目录；
+- 诊断配置、存储空间、Runtime 版本、模型状态和端口占用；
+- 实时查看有限行数的 Server 日志、筛选内容并打开日志目录；
+- 单实例、系统托盘以及可选的登录后启动行为。
+
+关闭窗口后 Manager 会继续驻留在系统托盘。左击图标可以恢复窗口，右击打开菜单；
+选择 **退出** 时会正常停止由 Manager 启动的 Server 子进程。
+
+<a id="api-example"></a>
+
+### 通过兼容 OpenAI 的 API 转写
+
+将下面路径替换成音频环境能够读取的真实录音文件：
 
 ```powershell
 curl.exe http://127.0.0.1:8010/v1/audio/transcriptions `
@@ -190,365 +189,180 @@ curl.exe http://127.0.0.1:8010/v1/audio/transcriptions `
   -F "diarization=true"
 ```
 
-返回的 JSON 包含完整文本，以及带时间戳和会议内说话人 ID 的分段。如果已经知道
-说话人数，例如三个人，可以再增加 `-F "speaker_count=3"`。
-
-如果 `.env` 中配置了 `NOTA_API_KEYS=my-local-key`，还需要在
-`curl.exe` 命令中加入：
+设置 `response_format=json` 会返回精简的 `{ "text": "..." }`。版本为 `1.0`
+的 `verbose_json` 还会包含语言、音频时长、处理时间、带时间戳的分段和说话人 ID。
+如果服务端启用了身份验证，再添加：
 
 ```powershell
 -H "Authorization: Bearer my-local-key"
 ```
 
-## 使用 Fun-ASR-Nano
+全部字段、限制、端点和错误响应以版本化的 [API 契约](docs/api-contract.md)为准。
 
-`fun-asr-nano` 默认启用，但 SenseVoice 仍是启动时预加载的模型，因此 Nano
-只会在 Nota 选择它或 API 请求传入 `model=fun-asr-nano` 后懒加载。第一次使用
-会下载官方、未量化的 `FunAudioLLM/Fun-ASR-Nano-2512` checkpoint，模型存储
-需要超过 2 GB，随后还会把模型加载到内存。
+### 连接 Nota Client
 
-在资源受限的主机上，可以修改 `.env`，只启用和预加载 Nano，然后重启服务：
+先启动 Server，然后在 Nota 中打开 **设置 → 语音转写** 并添加 Provider：
 
-```dotenv
-NOTA_ENABLED_MODELS=fun-asr-nano
-NOTA_PRELOAD_MODEL=fun-asr-nano
-```
-
-Nano 支持显式的 `zh`、`en`、`ja` 和 `yue` 语言提示。使用
-`language=auto` 时，Nano 会按原始语音进行转写，但不返回可靠的语言代码，因此
-稳定响应中的 `language` 为 `"und"`。Nano 使用原生标点和 ITN，由 FSMN-VAD
-完成最长 30 秒的内部切段，并通过 CAM++ 进入与其他模型相同的整场会议说话人
-处理链路。
-
-本版本正式支持的 Nano 基线是 PyTorch CPU。现有 XPU 设备路径可以用于实验性
-基准，但不构成 Nano 的性能或兼容性承诺。本次集成不使用 OpenVINO、vLLM、NPU
-运行时或量化权重。
-
-## Windows + Intel XPU
-
-如果服务运行在 Windows Intel AI PC 上，而且希望把推理工作从 CPU 转移到核显，
-可以使用这条路径。SenseVoice、Paraformer 和 CAM++ 已经在 Intel Arc GPU 上
-通过 PyTorch XPU/FunASR 路径进行过测试；这个运行方式不使用 OpenVINO。
-
-如果已经创建了 CPU 环境，建议保留它，并单独创建 XPU 环境：
-
-```powershell
-py -3.12 -m venv .venv-xpu
-.\.venv-xpu\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
-.\.venv-xpu\Scripts\python.exe -m pip install `
-  torch torchaudio --index-url https://download.pytorch.org/whl/xpu
-.\.venv-xpu\Scripts\python.exe -m pip install -e .
-```
-
-检查 PyTorch 是否能够识别 Intel 核显：
-
-```powershell
-.\.venv-xpu\Scripts\python.exe -c `
-  "import torch; print(torch.__version__, torch.xpu.is_available())"
-.\.venv-xpu\Scripts\python.exe -c `
-  "import torch; print(torch.xpu.get_device_name(0))"
-```
-
-输出必须包含 `True` 和 Intel GPU 名称。然后修改仓库根目录下的 `.env`：
-
-```dotenv
-NOTA_DEVICE=xpu:0
-```
-
-如果 CPU 服务仍占用配置的端口，请先停止它，然后使用 XPU 环境启动：
-
-```powershell
-.\.venv-xpu\Scripts\nota-asr-server.exe
-```
-
-检查实际运行设备：
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:8010/ready | ConvertTo-Json
-```
-
-XPU 服务就绪时会返回 `"status": "ready"` 和 `"device": "xpu:0"`。如果把
-`.env` 改回 `NOTA_DEVICE=cpu`，重启后同一个 XPU 环境就会改用 CPU 推理，
-不需要重新安装依赖。
-
-XPU 分流可以为录音、界面和其他服务保留更多 CPU 资源；但是对于较短或包含较多
-特殊算子的任务，CPU 可能持平甚至更快。选择生产环境默认设备前，建议使用后文的
-基准脚本和有代表性的会议录音进行测试。
-
-## 连接 Nota 桌面客户端
-
-先启动服务端，然后在 Nota 中新建或编辑 ASR Provider：
-
-| Nota 配置项 | 本机运行时填写 |
-| --- | --- |
+| Nota 配置项 | 本机 Server 配置 |
+|---|---|
 | Provider 类型 | `FunASR` |
-| API 根地址 | `http://127.0.0.1:8010/v1` |
+| Base URL | `http://127.0.0.1:8010/v1` |
 | 模型 | `sensevoice` |
-| API Key | 除非设置了 `NOTA_API_KEYS`，否则留空 |
+| API Key | 未启用 Server 身份验证时留空 |
 
-开始转写会议前，请先使用 Nota 的连接测试。当前 Nota 客户端要求服务端支持
-`batch_transcription_version=1`，可以通过下面的请求确认：
+开始转写前请先使用 Nota 的连接测试。Server 位于局域网另一台电脑时，应把
+`127.0.0.1` 替换成那台电脑的 IP，并在接受网络连接前配置身份验证和防火墙规则。
 
-```powershell
-Invoke-RestMethod http://127.0.0.1:8010/v1/nota/capabilities |
-  ConvertTo-Json
+### 模型
+
+| 别名 | 模型 | 推荐用途 | 预计下载量 | 许可证 |
+|---|---|---|---:|---|
+| `sensevoice` | SenseVoiceSmall | 推荐默认模型，适合通用会议转写 | 928 MiB | Apache-2.0 |
+| `paraformer` | Paraformer SeACo | 中文会议转写，并使用 CT-Punc | 2.07 GiB | Apache-2.0 |
+| `fun-asr-nano` | Fun-ASR-Nano-2512 | 用于评估较新的多语言模型 | 2.03 GiB | 上游未声明 |
+
+下载量包含模型所需的 VAD、标点或 CAM++ 组件。已经安装的公共组件会被复用，
+因此继续安装其他模型时，实际新增下载量可能更小。Nano 的上游模型仓库目前没有
+明确声明许可证，因此安装前必须由用户显式确认。
+
+SenseVoice 是默认模型和预加载模型。缺少模型不会导致 HTTP 进程退出：`/health`
+仍然可用，`/ready` 会解释 Server 暂时无法执行推理的原因。模型 revision 和校验
+规则参见[模型策略](docs/model-strategy.md)和[模型许可证说明](MODEL_LICENSES.md)。
+
+### 配置与部署
+
+配置优先级为：
+
+```text
+命令行参数 > 进程环境变量 > 配置文件旁的 .env > server.toml > 程序默认值
 ```
 
-如果已经启用 API Key 认证，请在检查时携带认证信息：
+- 便携 Runtime 使用 `config/server.toml`。相对路径以该文件为基准，Manager 会
+  以原子替换方式编辑同一份 TOML。
+- 源码、Docker 和 systemd 部署继续兼容 `.env` 及现有的全部 `NOTA_*` 环境变量。
+- API Key 只通过进程环境变量或 `.env` 提供；Manager 不会把它写进普通 TOML。
+- 便携 Runtime 默认只监听本机。源码和 Docker 示例使用 `0.0.0.0`，以便局域网
+  或容器访问；任何面向网络的部署都应该配置身份验证和防火墙规则。
 
-```powershell
-$headers = @{ Authorization = "Bearer my-local-key" }
-Invoke-RestMethod `
-  http://127.0.0.1:8010/v1/nota/capabilities `
-  -Headers $headers |
-  ConvertTo-Json
-```
+修改端口、模型根目录、默认模型或预加载模型后需要重启 Server。完整的配置、
+存储、CLI、日志、恢复和 systemd 说明参见[运维文档](docs/operations.md)。
 
-如果服务运行在局域网中的另一台电脑上，请将 `127.0.0.1` 换成服务端的局域网
-地址，把服务端的 `NOTA_HOST` 设置为 `0.0.0.0`，在两个应用中配置相同的
-API Key，并允许服务端防火墙放行 TCP 8010 端口。将服务暴露到隔离且可信的
-局域网以外之前，请先阅读 [`docs/security.md`](docs/security.md)。
+<a id="development"></a>
 
-## Linux 快速开始
+## 开发与二次开发
 
-项目支持 Python 3.10–3.12。下面以 Python 3.12 为例：
+### 开发环境
 
-```bash
-git clone https://github.com/kwp-lab/nota-asr-server.git
-cd nota-asr-server
+- Git
+- Python 3.10、3.11 或 3.12
+- 首次安装 Python 依赖和显式下载模型所需的网络连接
+- 修改 Manager 需要 Rust 1.96.0 和 MSVC 工具链
+- 构建自包含 Windows Runtime 需要 Windows 11 x64 和 uv 0.9.2
 
-python3.12 -m venv .venv
-.venv/bin/python -m pip install --upgrade pip setuptools wheel
-.venv/bin/python -m pip install \
-  torch torchaudio --index-url https://download.pytorch.org/whl/cpu
-.venv/bin/python -m pip install -e .
+<a id="run-from-source"></a>
 
-cp .env.example .env
-.venv/bin/nota-asr-server
-```
+### 从源码运行
 
-如果服务只供本机使用，请在启动前将 `.env` 中的 `NOTA_HOST` 设置为
-`127.0.0.1`。首次下载模型和就绪检查的行为与 Windows 相同。
-
-## Docker Compose 快速开始
-
-Docker 是本地 Python 环境之外的另一种运行方式。当前 Docker 镜像只支持 CPU。
+下面的 CPU 安装方式适用于 Windows PowerShell，并使用 editable install：
 
 ```powershell
 git clone https://github.com/kwp-lab/nota-asr-server.git
 Set-Location .\nota-asr-server
-docker compose up --build
-```
 
-启动后执行：
-
-```powershell
-Invoke-RestMethod http://127.0.0.1:8010/ready | ConvertTo-Json
-```
-
-Compose 会把 `.\models` 和 `.\data` 挂载到容器中，因此下载的模型和未完成
-任务可以在重建容器后继续保留。使用 `Ctrl+C` 停止，再通过
-`docker compose up` 启动。当会议任务仍需恢复时，不要执行
-`docker compose down -v`，也不要删除这两个目录。
-
-如需启用 API Key 或使用其他宿主机端口：
-
-```powershell
-$env:NOTA_API_KEYS = "replace-with-a-long-random-value"
-$env:NOTA_HOST_PORT = "9010"
-docker compose up --build
-```
-
-此时服务地址为 `http://127.0.0.1:9010`。
-
-## 配置参考
-
-服务从环境变量和当前工作目录下的 `.env` 读取配置；环境变量优先级更高。
-
-| 环境变量 | 默认值 | 用途 |
-| --- | ---: | --- |
-| `NOTA_HOST` | `0.0.0.0` | HTTP 监听地址；仅供本机使用时建议设为 `127.0.0.1`。 |
-| `NOTA_PORT` | `8010` | HTTP 端口。 |
-| `NOTA_DEVICE` | `cpu` | FunASR/PyTorch 设备；CPU 使用 `cpu`，XPU 版使用 `xpu:0`。 |
-| `NOTA_PRELOAD_MODEL` | `sensevoice` | 服务启动时预加载的模型。 |
-| `NOTA_ENABLED_MODELS` | `sensevoice,paraformer,fun-asr-nano` | API 启用的模型别名，使用英文逗号分隔。 |
-| `NOTA_MODEL_DIR` | `./models` | 下载模型的缓存目录。 |
-| `NOTA_DATA_DIR` | `./data` | 任务 SQLite、上传的 Ogg 和窗口检查点。 |
-| `NOTA_API_KEYS` | 空 | 接受的 Bearer Token，使用英文逗号分隔；留空表示关闭认证。 |
-| `NOTA_MAX_UPLOAD_BYTES` | `2147483648` | 最大上传文件大小：2 GiB。 |
-| `NOTA_MAX_AUDIO_SECONDS` | `14400` | 最大录音时长：4 小时。 |
-| `NOTA_MAX_CONCURRENT_INFERENCES` | `1` | 单个进程中的推理并发数。 |
-| `NOTA_BATCH_UPLOAD_CHUNK_BYTES` | `8388608` | Nota 断点续传块大小：8 MiB。 |
-| `NOTA_BATCH_WINDOW_SECONDS` | `300` | 内部推理窗口：5 分钟。 |
-| `NOTA_BATCH_WINDOW_OVERLAP_SECONDS` | `2` | 合并相邻窗口时使用的重叠长度。 |
-| `NOTA_BATCH_JOB_RETENTION_SECONDS` | `86400` | 未确认任务的保留时间：24 小时。 |
-| `NOTA_SPEAKER_EMBEDDING_MAX_BYTES` | `2097152` | 说话人识别单个语音样本的最大上传大小：2 MiB。 |
-| `NOTA_SPEAKER_EMBEDDING_MIN_SECONDS` | `5` | 可提取声纹的最短语音时长。 |
-| `NOTA_SPEAKER_EMBEDDING_MAX_SECONDS` | `30` | 单个声纹样本的最长时长。 |
-| `NOTA_TEMP_DIR` | 系统默认值 | 兼容接口使用的临时目录。 |
-| `NOTA_LOG_LEVEL` | `INFO` | Python/Uvicorn 日志级别。 |
-
-相对模型路径和数据路径会基于服务启动时的工作目录解析。除非配置了绝对路径，
-否则请始终从仓库根目录启动服务。
-
-## API 概览
-
-### 兼容 OpenAI 的转写接口
-
-`POST /v1/audio/transcriptions` 接收一个完整音频文件，并返回：
-
-- `response_format=json`：`{ "text": "..." }`
-- `response_format=verbose_json`：响应结构版本为 `1.0`，包含语言、音频时长、
-  处理时间、带时间戳的分段和说话人 ID。
-
-所有字段和错误响应请参见
-[`docs/api-contract.md`](docs/api-contract.md)。
-
-### Nota 可恢复批处理协议
-
-Nota 不会把客户端的十分钟录音分块当成互相独立的 ASR 请求。它通过
-`/v1/nota` 上传原始 Ogg 文件，由服务端使用有界窗口进行处理，最后再执行一次
-覆盖整场会议的说话人聚类。
-
-主要生命周期如下：
-
-1. `GET /v1/nota/capabilities`
-2. `POST /v1/nota/transcription-jobs`
-3. 重复调用 `PATCH /v1/nota/transcription-jobs/{id}/audio`
-4. `POST /v1/nota/transcription-jobs/{id}/complete`
-5. 轮询 `GET /v1/nota/transcription-jobs/{id}`
-6. `GET /v1/nota/transcription-jobs/{id}/result`
-7. Nota 保存结果后调用 `DELETE /v1/nota/transcription-jobs/{id}`
-
-上传进度、已完成窗口和结果可以在正常服务重启后恢复。客户端只有在把成功结果
-写入本地 Nota 数据库后才删除远程任务；默认情况下，遗留任务会在 24 小时后
-过期。
-
-## 开发与测试
-
-在已有虚拟环境中安装开发依赖：
-
-```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
+.\.venv\Scripts\python.exe -m pip install `
+  torch torchaudio --index-url https://download.pytorch.org/whl/cpu
 .\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+
+Copy-Item .env.example .env
+.\.venv\Scripts\nota-asr-server.exe
+```
+
+为了保持兼容性，源码配置默认预加载 SenseVoice，并允许在请求时下载模型。启动前
+可以编辑 `.env` 修改监听地址、设备、模型别名、存储路径、限制和身份验证。不要
+提交 `.env`。
+
+Linux 支持相同的 Python 版本和依赖安装顺序，只需使用对应平台的 venv 命令。
+兼容 Intel GPU 的 PyTorch XPU 环境记录在[运维文档](docs/operations.md)中；CPU
+仍然是官方预构建版本的基线。
+
+### 测试与质量检查
+
+Python 自动化测试使用假模型后端，不会下载模型权重：
+
+```powershell
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-自动化测试使用模拟模型后端，不会下载真实模型。贡献与隐私规则请参见
-[`CONTRIBUTING.md`](CONTRIBUTING.md)，详细环境配置请参见
-[`docs/development.md`](docs/development.md)。
-
-## CPU 与 Intel 核显基准测试
-
-`scripts/benchmark_funasr.py` 会让同一个音频和模型依次在不同 PyTorch
-设备上运行，并报告模型加载时间、预热后的推理延迟、实时率（RTF），以及相对于
-CPU 的延迟中位数加速比。脚本不会打印转写内容，也不会把转写内容写入 JSON
-报告。
-
-XPU 基准需要安装 XPU 版 PyTorch。XPU 版也可以执行 CPU 运算，因此同一个环境
-可以同时测试 `cpu` 和 `xpu:0`：
+修改 Manager 后还需要运行：
 
 ```powershell
-py -3.12 -m venv .venv-xpu
-.\.venv-xpu\Scripts\python.exe -m pip install --upgrade pip setuptools wheel
-.\.venv-xpu\Scripts\python.exe -m pip install `
-  torch torchaudio --index-url https://download.pytorch.org/whl/xpu
-.\.venv-xpu\Scripts\python.exe -m pip install -e ".[dev]"
-
-.\.venv-xpu\Scripts\python.exe .\scripts\benchmark_funasr.py `
-  C:\Audio\sample.wav `
-  --model fun-asr-nano `
-  --devices cpu xpu:0 `
-  --warmup-runs 1 `
-  --runs 3 `
-  --json-out .\benchmark-funasr-nano.json
+cargo fmt --all -- --check
+cargo test --workspace --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
 ```
 
-API 服务和基准脚本使用同一个 `fun-asr-nano` 别名。这个脚本衡量的是
-PyTorch/FunASR 路径，而不是 OpenVINO。只有在希望把 CAM++ 也计入工作负载时
-才添加 `--diarization`。CPU 是本版本正式支持的 Nano 基线，XPU 结果应视为
-当前主机上的实验性证据。
+### 工程结构
 
-## 常见问题
+```text
+src/        Python API、配置、模型适配器和任务处理
+manager/    原生 Rust Windows Manager
+scripts/    Runtime、合规、基准测试和本地发布工具
+tests/      使用假模型后端的 API 契约与行为测试
+deploy/     Docker、systemd 和 Windows 便携版模板
+docs/       架构、API、运维、安全、模型策略和 ADR
+```
 
-### Nano 成功返回，但 FunASR 输出 `Missing punc_model`
+### 构建 Windows Runtime
 
-FunASR 1.3.30 在原生标点模型通过 `vad_segment` 使用 CAM++ 时，可能输出这条
-容易误解的日志。Fun-ASR-Nano 按设计不加载 `ct-punc`；只要成功响应包含带时间戳
-的 speaker 分段，结果就是有效的。真正缺少说话人结果或内部 centroid 时，Nota
-任务会以 `diarization_failed` 失败，不会静默接受不可靠结果。
-
-### `py -3.12` 提示没有安装对应的 Python
-
-请安装 64 位 Python 3.12，或者把 `py -3.12` 换成已经安装的受支持版本，
-例如 `py -3.11`。可以通过下面的命令查看：
+为本地开发和检查生成未压缩的 one-folder Runtime：
 
 ```powershell
-py --list
+.\scripts\build-windows-runtime.ps1 `
+  -OutputDirectory .\dist\nota-asr-runtime `
+  -PreloadModel sensevoice
 ```
 
-### PowerShell 阻止运行 `Activate.ps1`
+这个产物有意不包含 Manager 和 ZIP。owner 的本地发布入口会构建 Runtime 与
+Manager、生成 Windows 专用合规文件、执行离线检查、签名 Manager，并生成一个 ZIP：
 
-本文的快速开始没有激活虚拟环境，所以不需要修改执行策略。继续使用
-`.\.venv\Scripts\python.exe` 和
-`.\.venv\Scripts\nota-asr-server.exe` 这样的完整命令即可。
+```powershell
+.\scripts\build-windows-release.ps1 -Configuration Release
+```
 
-### 第一次启动看起来一直没有完成
+产物为忽略目录 `dist/` 下的
+`Nota-ASR-Runtime-<version>-Windows-x64-CPU.zip`。脚本不会上传文件、创建 Git
+tag 或 GitHub Release、下载模型权重，也不会在 CI 中运行。正式公开包必须完成
+代码签名；`-UnsignedDevelopmentBuild` 只用于本地打包测试。
 
-首次运行时，Uvicorn 完成启动前需要下载并加载多个模型。请观察服务端终端和
-`.\models` 目录，不要为了绕过较慢的首次下载而同时启动多个服务进程。
+### 工程文档
 
-### `/health` 正常，但 `/ready` 返回 HTTP 503
+请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)，然后通过
+[工程文档索引](docs/README.md)继续了解：
 
-这表示 HTTP 进程仍然存活，但预加载模型不可用。`/ready` 响应中的 `detail`
-字段会给出错误摘要，服务端终端则会显示具体的下载、依赖、模型或设备错误。
-修复后重新启动服务。
+- [业务上下文](docs/business-context.md)
+- [API 契约](docs/api-contract.md)
+- [架构](docs/architecture.md)
+- [模型策略](docs/model-strategy.md)
+- [开发指南](docs/development.md)
+- [运维](docs/operations.md)
+- [安全](docs/security.md)
+- [开源合规](docs/open-source-compliance.md)
 
-### 设置 `NOTA_DEVICE=xpu:0` 后服务无法就绪
+## 当前范围
 
-请执行 [Windows + Intel XPU](#windows--intel-xpu) 中的 XPU 检查命令，确认
-安装的是 XPU 版 PyTorch、`torch.xpu.is_available()` 返回 `True`，并且
-Intel 显卡驱动可以正确识别设备。同时确认启动的是 `.venv-xpu` 中的服务，而
-不是只安装了 CPU 版 PyTorch 的 `.venv`。如果模型加载失败，`/ready` 响应和
-服务端终端会包含对应的模型或不支持算子错误。
-
-### 8010 端口已被占用
-
-在 `.env` 中设置其他端口，例如 `NOTA_PORT=9010`，然后重新启动服务，并在
-Nota 的 API 根地址中使用相同端口。
-
-### Nota 无法连接局域网中的服务端
-
-请逐项确认：
-
-- 服务端配置了 `NOTA_HOST=0.0.0.0`；
-- Nota 使用 `http://<服务端局域网地址>:8010/v1`，而不是 `127.0.0.1`；
-- Windows 防火墙在预期的网络配置文件中允许 TCP 8010 入站；
-- Nota 中的 API Key 与 `NOTA_API_KEYS` 中的某一个值完全一致；
-- `GET /v1/nota/capabilities` 返回
-  `batch_transcription_version: "1"`。
-
-### 磁盘占用持续增长
-
-`models` 中保存可复用的模型权重；`data` 中保存私密会议音频和持久化任务，
-直到 Nota 确认删除或保留时间到期。不要把 `data` 放入日志或未经批准的普通
-备份中。存储和恢复行为请参见
-[`docs/operations.md`](docs/operations.md)。
-
-## 工程文档
-
-[`docs/README.md`](docs/README.md) 是工程文档索引，其中包括：
-
-- 产品范围和非目标；
-- 完整 API 契约；
-- 架构与模型策略；
-- 部署、恢复和安全说明；
-- 架构决策记录。
-
-当系统行为发生变化时，应同时更新代码、测试、README 和受到影响的技术规格。
+- 只处理已完成的录音；暂不提供实时或流式 ASR。
+- 默认只有一个推理并发槽位。
+- Windows 11 x64 CPU 是唯一官方预构建目标。
+- Intel XPU 是可选的源码安装方式，不提供官方便携包。
+- 模型始终单独下载，并可能具有独立许可证。
+- 原生 Manager 当前只提供简体中文界面。
 
 ## 许可证
 
-Nota ASR Server 采用 [MIT 许可证](LICENSE)。Copyright (c) 2026 kwp-lab。
-第三方 Python 依赖仍适用各自的许可证；请查阅[依赖清单](THIRD_PARTY_LICENSES.md)、
-[完整许可声明](THIRD_PARTY_NOTICES.txt)、[CycloneDX SBOM](bom.cyclonedx.json)和
-[模型许可证说明](MODEL_LICENSES.md)。
+Nota ASR Server 使用 [MIT License](LICENSE)。Copyright (c) 2026 kwp-lab。
+
+第三方依赖和模型保留各自的许可证。请查看
+[依赖清单](THIRD_PARTY_LICENSES.md)、[完整通知](THIRD_PARTY_NOTICES.txt)、
+[CycloneDX SBOM](bom.cyclonedx.json)和[模型许可证说明](MODEL_LICENSES.md)。
