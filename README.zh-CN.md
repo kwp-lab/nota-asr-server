@@ -111,7 +111,8 @@ flowchart LR
    一个可写位置。
 2. 双击 `NotaASRManager.exe`。
 3. 确认模型目录和数据目录；它们可以放到 `D:\NotaASR` 等其他磁盘。
-4. 安装推荐的默认模型 **SenseVoiceSmall**。
+4. 在 **模型** 面板找到 **SenseVoiceSmall**，点击 **下载**。Manager 会自动下载并
+   校验所需模型文件。
 5. 点击 **启动 Server**，等待顶部状态变为 Server 正在运行。
 
 目标电脑不需要安装系统 Python、Git、uv、Rust、Visual Studio，也不需要管理员

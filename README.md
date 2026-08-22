@@ -114,7 +114,8 @@ package with the documented release script.
 2. Double-click `NotaASRManager.exe`.
 3. Confirm the model and data directories. They may be placed on another drive,
    such as `D:\NotaASR`.
-4. Install **SenseVoiceSmall**, the recommended default model.
+4. In the **模型** panel, find **SenseVoiceSmall** and select **下载**. The
+   Manager automatically downloads and verifies the required model files.
 5. Select **启动 Server** and wait for the header to report that the Server is
    running.
 
