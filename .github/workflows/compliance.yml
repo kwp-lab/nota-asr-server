@@ -18,7 +18,6 @@ on:
       - "MODEL_LICENSES.md"
       - "THIRD_PARTY_LICENSES.md"
       - "THIRD_PARTY_NOTICES.txt"
-      - "bom.cyclonedx.json"
 
 permissions:
   contents: read
@@ -41,7 +40,17 @@ jobs:
       - name: Create frozen CPU production environment
         run: uv sync --frozen --no-dev --extra cpu
       - name: Verify license policy and generated artifacts
-        run: uv run --no-sync python scripts/generate_license_artifacts.py --python .venv/bin/python --check
+        run: |
+          uv run --no-sync python scripts/generate_license_artifacts.py \
+            --python .venv/bin/python \
+            --check \
+            --sbom-output "$RUNNER_TEMP/nota-asr-server-linux-python.bom.cyclonedx.json"
+      - name: Upload generated Linux Python SBOM
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: nota-asr-server-linux-python-sbom
+          path: ${{ runner.temp }}/nota-asr-server-linux-python.bom.cyclonedx.json
+          retention-days: 14
       - name: Verify wheel and source distribution contents
         run: |
           uv build
@@ -51,7 +60,7 @@ jobs:
           from pathlib import Path
 
           wheel = next(Path("dist").glob("*.whl"))
-          required = {"LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md", "THIRD_PARTY_NOTICES.txt", "MODEL_LICENSES.md", "bom.cyclonedx.json"}
+          required = {"LICENSE", "NOTICE", "THIRD_PARTY_LICENSES.md", "THIRD_PARTY_NOTICES.txt", "MODEL_LICENSES.md"}
           with zipfile.ZipFile(wheel) as archive:
               names = {Path(name).name for name in archive.namelist()}
           missing = required - names

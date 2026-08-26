@@ -38,6 +38,11 @@ rules, then use this index to find the specification that owns a change.
 17. [`decisions/0014-portable-zip-windows-distribution.md`](decisions/0014-portable-zip-windows-distribution.md):
     why the official Windows package is an owner-built portable ZIP and how
     Manager distinguishes portable from future installed configuration.
+18. [`decisions/0015-model-hotword-capabilities-and-batch-request.md`](decisions/0015-model-hotword-capabilities-and-batch-request.md):
+    why hotword support is model-scoped and persisted with durable jobs.
+19. [`decisions/0016-generate-sboms-at-distribution-boundaries.md`](decisions/0016-generate-sboms-at-distribution-boundaries.md):
+    why Linux, Docker, and Windows SBOMs are generated from their actual build
+    environments instead of committing one platform-specific root file.
 
 When behavior changes, update code, tests, and the corresponding document in
 the same change.

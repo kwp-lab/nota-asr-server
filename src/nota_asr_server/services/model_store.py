@@ -240,6 +240,9 @@ class ModelStore:
 
     def reference(self, component_key: str, *, policy: str) -> tuple[str, str | None]:
         component = self.catalog.components[component_key]
+        status = self.component_status(component_key)
+        if status["installed"]:
+            return str(self.component_path(component_key)), None
         if policy == "on_demand":
             return component.model_id, component.revision
         self.verify_component(component_key)

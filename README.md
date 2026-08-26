@@ -249,6 +249,23 @@ and firewall access before accepting network connections.
 | `paraformer` | Paraformer SeACo | Chinese meeting transcription with CT-Punc | 2.07 GiB | Apache-2.0 |
 | `fun-asr-nano` | Fun-ASR-Nano-2512 | Newer multilingual-model evaluation | 2.03 GiB | Upstream license undeclared |
 
+#### Hotword, context, and weight capabilities
+
+The DashScope column is included for comparison with Nota Client's direct cloud
+Provider; DashScope Qwen is not hosted by Nota ASR Server.
+
+| Capability | DashScope Qwen Filetrans | Paraformer SeACo | Fun-ASR-Nano | SenseVoice |
+|---|---|---|---|---|
+| Plain hotwords | Supported | Supported | Supported | Not supported |
+| Arbitrary prompt context | Supported | Not supported | Not exposed; uses a fixed hotword prompt | Not supported |
+| Hotword mechanism | Inline `vocabulary` | Decoder bias | LLM hotword prompt | — |
+| Per-hotword weight | `1–5` or super-hotword `50` | Not exposed by the current API | Not exposed by the current API | — |
+
+Nota's batch API intentionally accepts `hotwords: string[]`, because adjustable
+per-entry weights and arbitrary context do not have equivalent semantics across
+the local models. See the [model strategy](docs/model-strategy.md) for the
+model-specific mappings and limits.
+
 Download totals include each model's required VAD, punctuation, or CAM++
 components. Shared components are reused, so installing another model may need
 less additional space. Nano requires an explicit acknowledgement because its
@@ -404,5 +421,7 @@ Nota ASR Server is licensed under the [MIT License](LICENSE). Copyright (c) 2026
 
 Third-party packages and models retain their own licenses. See the
 [dependency inventory](THIRD_PARTY_LICENSES.md),
-[complete notices](THIRD_PARTY_NOTICES.txt), [CycloneDX SBOM](bom.cyclonedx.json),
-and [model license guidance](MODEL_LICENSES.md).
+[complete notices](THIRD_PARTY_NOTICES.txt), and
+[model license guidance](MODEL_LICENSES.md). Linux and Windows SBOMs are
+generated for their respective build environments instead of being committed
+as one platform-specific root file.

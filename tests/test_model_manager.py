@@ -28,6 +28,12 @@ def test_model_manager_advertises_nano_without_loading_it(tmp_path):
             "languages": ["zh", "en", "ja", "yue"],
             "diarization": True,
             "decoder_hotwords": False,
+            "hotwords": {
+                "supported": True,
+                "mode": "prompt",
+                "max_entries": 500,
+                "max_entry_chars": 100,
+            },
         },
     }
     assert manager.loaded_models == []

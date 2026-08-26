@@ -2,8 +2,13 @@
 
 - Status: Accepted
 - Date: 2026-08-13
-- Last updated: 2026-08-13
+- Last updated: 2026-08-26
 - Decision owners: Nota maintainers
+
+The committed-SBOM portion of this decision is superseded by
+[ADR 0016](0016-generate-sboms-at-distribution-boundaries.md). The frozen CPU
+environment, license allowlist, tracked dependency inventory/notices, and
+separate model/OCI boundaries remain accepted.
 
 ## Context
 

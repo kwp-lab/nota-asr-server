@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 import threading
 import time
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from typing import Any
 
 import numpy as np
@@ -23,6 +25,34 @@ from nota_asr_server.backends.turn_alignment import (
     extract_aligned_tokens,
     relabel_result_for_trace,
 )
+
+
+class _SensitiveValueLogFilter(logging.Filter):
+    def __init__(self, values: tuple[str, ...]) -> None:
+        super().__init__()
+        self._values = tuple(value for value in values if value)
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        return not any(value in message for value in self._values)
+
+
+@contextmanager
+def _redact_upstream_log_values(values: tuple[str, ...]) -> Iterator[None]:
+    if not values:
+        yield
+        return
+
+    log_filter = _SensitiveValueLogFilter(values)
+    root_logger = logging.getLogger()
+    targets: list[logging.Filterer] = [root_logger, *root_logger.handlers]
+    for target in targets:
+        target.addFilter(log_filter)
+    try:
+        yield
+    finally:
+        for target in targets:
+            target.removeFilter(log_filter)
 
 
 class FunASRBackend(ASRBackend):
@@ -78,6 +108,7 @@ class FunASRBackend(ASRBackend):
         diarization: bool,
         speaker_count: int | None,
         duration: float,
+        hotwords: tuple[str, ...] = (),
     ) -> BackendResult:
         self.load()
         generate_kwargs = dict(self.generate_config)
@@ -91,12 +122,14 @@ class FunASRBackend(ASRBackend):
             }
         )
         self._apply_language_hint(generate_kwargs, language)
+        self._apply_hotwords(generate_kwargs, hotwords)
         if diarization and speaker_count is not None:
             generate_kwargs["preset_spk_num"] = speaker_count
 
         with self._inference_lock:
             started = time.perf_counter()
-            raw_results = self._model.generate(**generate_kwargs)
+            with _redact_upstream_log_values(hotwords):
+                raw_results = self._model.generate(**generate_kwargs)
             elapsed = time.perf_counter() - started
 
         return normalize_funasr_result(
@@ -128,6 +161,7 @@ class FunASRBackend(ASRBackend):
         language: str,
         diarization: bool,
         duration: float,
+        hotwords: tuple[str, ...] = (),
     ) -> BackendWindowResult:
         self.load()
         generate_kwargs = dict(self.generate_config)
@@ -142,6 +176,7 @@ class FunASRBackend(ASRBackend):
             }
         )
         self._apply_language_hint(generate_kwargs, language)
+        self._apply_hotwords(generate_kwargs, hotwords)
 
         capture_backend = (
             getattr(self._model, "cb_model", None)
@@ -159,7 +194,8 @@ class FunASRBackend(ASRBackend):
                 capture_backend.clear_capture()
             started = time.perf_counter()
             try:
-                raw_results = self._model.generate(**generate_kwargs)
+                with _redact_upstream_log_values(hotwords):
+                    raw_results = self._model.generate(**generate_kwargs)
             finally:
                 elapsed = time.perf_counter() - started
                 if capture_backend is not None:
@@ -195,6 +231,21 @@ class FunASRBackend(ASRBackend):
             speaker_trace=speaker_trace,
             aligned_tokens=aligned_tokens,
         )
+
+    def _apply_hotwords(
+        self,
+        generate_kwargs: dict[str, Any],
+        hotwords: tuple[str, ...],
+    ) -> None:
+        if not hotwords:
+            return
+        if self.capabilities.hotword_mode == "decoder_bias":
+            generate_kwargs["hotword"] = " ".join(hotwords)
+            return
+        if self.capabilities.hotword_mode == "prompt":
+            generate_kwargs["hotwords"] = list(hotwords)
+            return
+        raise ValueError("Hotwords are not supported by this model")
 
     def cluster_speaker_centers(
         self,

@@ -49,7 +49,8 @@ stdout/stderr are size-rotated, and Manager exit closes a kill-on-close Job
 Object after the graceful timeout. An external process answering on the target
 port is displayed but never terminated.
 
-Neither JSON diagnostics nor logs may contain audio, transcript text,
-authorization headers, API keys, or the shutdown token. Runtime and release
-manifests contain versions, Git identity, build mode, architecture, sizes, and
-hashes only.
+Neither JSON diagnostics nor logs may contain audio, transcript text, hotword
+text, authorization headers, API keys, or the shutdown token. The FunASR
+adapter applies request-scoped sensitive-value filtering because upstream model
+code may log inference parameters. Runtime and release manifests contain
+versions, Git identity, build mode, architecture, sizes, and hashes only.

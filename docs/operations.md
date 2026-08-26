@@ -12,6 +12,11 @@
   purity filtering across bounded candidate WAV samples.
 - `/docs` exposes Swagger UI.
 
+Batch hotword snapshots are retained only in the job row and follow the same
+acknowledgement or expiry cleanup as uploaded audio and window state. Operators
+may log model, count, and stable error code, but never the hotword array or
+request body.
+
 ## Windows CPU Runtime
 
 The supported ordinary-user Windows product is a portable x64 CPU ZIP
@@ -170,11 +175,13 @@ resident together.
 ## Model Storage
 
 Legacy source deployments use `NOTA_MODEL_DIR` (default `./models`) and the
-`on_demand` policy. At startup the service passes its
-absolute path to ModelScope through `MODELSCOPE_CACHE`; FunASR then downloads
-missing model snapshots below that directory. ModelScope normally defaults to
-a user cache under `~/.cache/modelscope`, but Nota deliberately overrides that
-SDK default so a deployment's models live with its project data.
+`on_demand` policy. An installed component under `<root>/components` is always
+passed to FunASR by absolute path and therefore remains usable offline without
+creating a second ModelScope cache copy. Only a missing component falls back to
+its pinned Hub identifier; ModelScope downloads that snapshot below the
+configured model root. ModelScope normally defaults to a user cache under
+`~/.cache/modelscope`, but Nota deliberately overrides that SDK default so a
+deployment's models live with its project data.
 
 Windows Runtime uses `download_policy = "explicit"`. `models install` downloads
 into `<root>/.downloads`, supports the upstream downloader's resume behavior,

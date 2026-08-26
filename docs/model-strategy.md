@@ -19,6 +19,10 @@ normalization.
 
 ## Paraformer Option
 
+Paraformer SeACo declares `decoder_bias` hotwords, up to 500 entries and 100
+characters per entry. The batch worker joins the immutable job snapshot into
+the FunASR `hotword` decoder parameter for every window.
+
 The `paraformer` alias lazily loads:
 
 - `iic/speech_seaco_paraformer_large_asr_nat-zh-cn-16k-common-vocab8404-pytorch`
@@ -37,6 +41,19 @@ remain unresolved, so clients must treat segment boundaries as implementation
 details.
 
 ## Fun-ASR-Nano Option
+
+Fun-ASR-Nano declares `prompt` hotwords with the same limits and receives the
+snapshot as a `hotwords` list. SenseVoice declares no hotword support.
+
+```mermaid
+flowchart LR
+    A["Batch job hotwords_json"] --> B{"Selected model"}
+    B -->|"Paraformer SeACo"| C["decoder hotword"]
+    B -->|"Fun-ASR-Nano"| D["prompt hotwords list"]
+    B -->|"SenseVoice"| E["hotwords_not_supported"]
+    C --> F["Each recovered processing window"]
+    D --> F
+```
 
 The `fun-asr-nano` alias lazily loads the official, non-quantized
 `FunAudioLLM/Fun-ASR-Nano-2512` checkpoint together with:
@@ -73,6 +90,11 @@ all three aliases are visible, but startup never downloads weights. The default
 and preload aliases remain `sensevoice`. Fun-ASR-Nano installation is rejected
 until the caller explicitly acknowledges that its upstream license was not
 declared at the catalog review date.
+
+Both policies prefer a component already installed under the managed
+`components` root and pass that absolute snapshot path to FunASR. `on_demand`
+falls back to the pinned ModelScope identifier only when no managed component
+is installed; it must not create a second Hub-cache copy of an installed model.
 
 SenseVoice and Fun-ASR-Nano publish mutable `master` revisions. The catalog
 therefore pins the reviewed upstream commit, file count, and an aggregate
@@ -150,9 +172,9 @@ timestamps, rich tags, and numeric speaker labels to the contract in
 
 ## Hotwords
 
-SenseVoice does not provide decoder-level hotword biasing. Nano accepts
-prompt-based context, but that behavior is not equivalent to Paraformer's
-decoder biasing. This release does not expose a hotword request field, avoiding
-a parameter that silently behaves differently by model. A future design must
-explicitly choose decoder biasing, prompt context, audited post-processing, or
-a capability error per model.
+The Nota batch request exposes optional `hotwords` only after the Server has
+declared `hotword_request_version: "1"`. Paraformer maps the immutable job
+snapshot to decoder biasing, while Nano maps it to prompt hotwords; these modes
+remain explicit in each model's capabilities because their influence is not
+semantically identical. SenseVoice rejects non-empty hotwords with a stable
+capability error rather than silently ignoring them.

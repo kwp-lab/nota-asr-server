@@ -39,6 +39,12 @@ class FakeModelManager:
                     "languages": ["zh", "en", "ja", "ko", "yue"],
                     "diarization": True,
                     "decoder_hotwords": False,
+                    "hotwords": {
+                        "supported": False,
+                        "mode": "none",
+                        "max_entries": 0,
+                        "max_entry_chars": 0,
+                    },
                 },
             },
             {
@@ -50,6 +56,12 @@ class FakeModelManager:
                     "languages": ["zh", "en", "ja", "yue"],
                     "diarization": True,
                     "decoder_hotwords": False,
+                    "hotwords": {
+                        "supported": True,
+                        "mode": "prompt",
+                        "max_entries": 500,
+                        "max_entry_chars": 100,
+                    },
                 },
             },
         ]
@@ -235,6 +247,12 @@ def test_models_endpoint_advertises_nano_capabilities():
         "languages": ["zh", "en", "ja", "yue"],
         "diarization": True,
         "decoder_hotwords": False,
+        "hotwords": {
+            "supported": True,
+            "mode": "prompt",
+            "max_entries": 500,
+            "max_entry_chars": 100,
+        },
     }
 
 

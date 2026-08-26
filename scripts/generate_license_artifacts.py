@@ -15,7 +15,6 @@ PIP_LICENSES_VERSION = "5.5.5"
 OUTPUTS = {
     "inventory": ROOT / "THIRD_PARTY_LICENSES.md",
     "notices": ROOT / "THIRD_PARTY_NOTICES.txt",
-    "sbom": ROOT / "bom.cyclonedx.json",
 }
 
 
@@ -271,9 +270,16 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        help="Write a platform-specific inventory without replacing committed Linux files",
+        help="Write a complete platform-specific legal bundle",
+    )
+    parser.add_argument(
+        "--sbom-output",
+        type=Path,
+        help="Generate an ephemeral SBOM without requiring a committed copy",
     )
     args = parser.parse_args()
+    if args.output_dir and args.sbom_output:
+        parser.error("--output-dir and --sbom-output cannot be used together")
     python = args.python
     if not python.is_absolute():
         python = ROOT / python
@@ -282,7 +288,8 @@ def main() -> None:
     # A POSIX virtual environment normally symlinks Python to its base
     # interpreter. Resolving that symlink would make pip-licenses inspect the
     # runner's global environment instead of the selected locked environment.
-    outputs = OUTPUTS
+    outputs = OUTPUTS.copy()
+    sbom_output: Path | None = None
     if args.output_dir:
         output_dir = args.output_dir
         if not output_dir.is_absolute():
@@ -291,12 +298,18 @@ def main() -> None:
         outputs = {
             "inventory": output_dir / "THIRD_PARTY_LICENSES.md",
             "notices": output_dir / "THIRD_PARTY_NOTICES.txt",
-            "sbom": output_dir / "bom.cyclonedx.json",
         }
+        sbom_output = output_dir / "bom.cyclonedx.json"
+    elif args.sbom_output:
+        sbom_output = args.sbom_output
+        if not sbom_output.is_absolute():
+            sbom_output = ROOT / sbom_output
+        sbom_output.parent.mkdir(parents=True, exist_ok=True)
     packages = validate(run_pip_licenses(python.absolute()))
     write_or_check(outputs["inventory"], inventory(packages), args.check)
     write_or_check(outputs["notices"], notices(packages), args.check)
-    write_or_check(outputs["sbom"], sbom(packages), args.check)
+    if sbom_output:
+        write_or_check(sbom_output, sbom(packages), False)
     print("License artifacts are current." if args.check else "License artifacts generated.")
 
 

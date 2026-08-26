@@ -232,6 +232,21 @@ curl.exe http://127.0.0.1:8010/v1/audio/transcriptions `
 | `paraformer` | Paraformer SeACo | 中文会议转写，并使用 CT-Punc | 2.07 GiB | Apache-2.0 |
 | `fun-asr-nano` | Fun-ASR-Nano-2512 | 用于评估较新的多语言模型 | 2.03 GiB | 上游未声明 |
 
+#### 热词、上下文与权重能力
+
+下表加入 DashScope，是为了与 Nota Client 直连的云端 Provider 对比；Nota ASR
+Server 本身不托管千问模型。
+
+| 能力 | DashScope 千问 Filetrans | Paraformer SeACo | Fun-ASR-Nano | SenseVoice |
+|---|---|---|---|---|
+| 普通热词 | 支持 | 支持 | 支持 | 不支持 |
+| 任意 Prompt 上下文 | 支持 | 不支持 | 未开放；内部使用固定热词 Prompt | 不支持 |
+| 热词实现 | 即时 `vocabulary` | 解码器偏置 | LLM 热词提示 | — |
+| 每条热词可调权重 | `1–5` 或超级热词 `50` | 当前 API 未开放 | 当前 API 未开放 | — |
+
+Nota 批处理 API 有意只接收 `hotwords: string[]`，因为逐条权重和任意上下文在
+本地模型之间没有等价语义。各模型的映射和限制参见[模型策略](docs/model-strategy.md)。
+
 下载量包含模型所需的 VAD、标点或 CAM++ 组件。已经安装的公共组件会被复用，
 因此继续安装其他模型时，实际新增下载量可能更小。Nano 的上游模型仓库目前没有
 明确声明许可证，因此安装前必须由用户显式确认。
@@ -379,4 +394,5 @@ Nota ASR Server 使用 [MIT License](LICENSE)。Copyright (c) 2026 kwp-lab。
 
 第三方依赖和模型保留各自的许可证。请查看
 [依赖清单](THIRD_PARTY_LICENSES.md)、[完整通知](THIRD_PARTY_NOTICES.txt)、
-[CycloneDX SBOM](bom.cyclonedx.json)和[模型许可证说明](MODEL_LICENSES.md)。
+以及[模型许可证说明](MODEL_LICENSES.md)。Linux 和 Windows SBOM 分别在对应
+构建环境中动态生成，不再把某个平台的 SBOM 固定提交为仓库根文件。

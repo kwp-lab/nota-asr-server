@@ -15,6 +15,16 @@ pytest --cov=nota_asr_server
 Contract and API tests use fake backends and must not download models. Real
 model smoke tests are operational checks and run separately.
 
+Hotword changes require capability-schema, normalization, idempotency,
+restart persistence, per-window mapping, unsupported-model, and privacy tests.
+Automated tests must not call DashScope or include real meeting terminology.
+
+Actual model influence is checked separately with the opt-in
+`examples/verify_hotword_effect.py` A/B probe. It submits the same Ogg audio
+without and with hotwords and is deliberately outside `tests/`, so normal
+`pytest` and CI runs never execute it. See `examples/README.md` for usage and
+exit-code semantics.
+
 Windows product changes also require the pinned Rust toolchain checks:
 
 ```powershell
@@ -69,12 +79,12 @@ package.
 ## Dependency and license verification
 
 The committed `uv.lock` includes the reproducible CPU deployment extra. After
-dependency changes, rebuild the frozen environment and regenerate the legal
-artifacts from the documented Linux container baseline in
-[`open-source-compliance.md`](open-source-compliance.md). Do not approve a
-lock-file change with stale notices or an unreviewed license; a Windows local
-environment has a different platform dependency graph and is not the release
-inventory source.
+dependency changes, let CI rebuild the frozen Linux environment, enforce the
+license policy, and generate its ephemeral SBOM. Regenerate the tracked license
+inventory and notices from the documented Linux container baseline in
+[`open-source-compliance.md`](open-source-compliance.md) only when the installed
+dependency set or license text changes. A Windows local environment has a
+different platform dependency graph and is not the Linux inventory source.
 
 For a Fun-ASR-Nano CPU smoke check, start a server configured with
 `NOTA_PRELOAD_MODEL=fun-asr-nano`, submit an untracked sample with
