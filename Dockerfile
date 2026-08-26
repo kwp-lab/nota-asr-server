@@ -21,11 +21,16 @@ RUN apt-get update \
 WORKDIR /app
 RUN python -m pip install --no-cache-dir "uv==$UV_VERSION"
 
-COPY pyproject.toml uv.lock README.md LICENSE NOTICE THIRD_PARTY_LICENSES.md THIRD_PARTY_NOTICES.txt MODEL_LICENSES.md bom.cyclonedx.json /app/
+COPY pyproject.toml uv.lock README.md LICENSE NOTICE THIRD_PARTY_LICENSES.md THIRD_PARTY_NOTICES.txt MODEL_LICENSES.md /app/
 RUN uv sync --frozen --no-dev --extra cpu --no-install-project
 
 COPY src /app/src
-RUN uv sync --frozen --no-dev --extra cpu
+COPY scripts/generate_license_artifacts.py scripts/license-policy.json /app/scripts/
+RUN uv sync --frozen --no-dev --extra cpu \
+    && uv run --no-sync python scripts/generate_license_artifacts.py \
+       --python /app/.venv/bin/python \
+       --check \
+       --sbom-output /app/bom.cyclonedx.json
 
 ENV PATH="/app/.venv/bin:$PATH"
 

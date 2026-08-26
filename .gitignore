@@ -19,3 +19,4 @@ benchmark-*.json
 /report/
 /target/
 manager/target/
+/bom.cyclonedx.json

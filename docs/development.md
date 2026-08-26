@@ -79,12 +79,12 @@ package.
 ## Dependency and license verification
 
 The committed `uv.lock` includes the reproducible CPU deployment extra. After
-dependency changes, rebuild the frozen environment and regenerate the legal
-artifacts from the documented Linux container baseline in
-[`open-source-compliance.md`](open-source-compliance.md). Do not approve a
-lock-file change with stale notices or an unreviewed license; a Windows local
-environment has a different platform dependency graph and is not the release
-inventory source.
+dependency changes, let CI rebuild the frozen Linux environment, enforce the
+license policy, and generate its ephemeral SBOM. Regenerate the tracked license
+inventory and notices from the documented Linux container baseline in
+[`open-source-compliance.md`](open-source-compliance.md) only when the installed
+dependency set or license text changes. A Windows local environment has a
+different platform dependency graph and is not the Linux inventory source.
 
 For a Fun-ASR-Nano CPU smoke check, start a server configured with
 `NOTA_PRELOAD_MODEL=fun-asr-nano`, submit an untracked sample with

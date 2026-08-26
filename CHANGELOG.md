@@ -7,6 +7,12 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Changed
+
+- Generate the Linux Python SBOM in CI and Docker builds instead of committing
+  a platform-specific root artifact that becomes stale after metadata-only lock
+  changes; Windows Runtime and Manager SBOM generation remains unchanged.
+
 ## [0.4.0] - 2026-08-25
 
 ### Added

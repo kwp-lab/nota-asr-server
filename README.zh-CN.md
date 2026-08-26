@@ -394,4 +394,5 @@ Nota ASR Server 使用 [MIT License](LICENSE)。Copyright (c) 2026 kwp-lab。
 
 第三方依赖和模型保留各自的许可证。请查看
 [依赖清单](THIRD_PARTY_LICENSES.md)、[完整通知](THIRD_PARTY_NOTICES.txt)、
-[CycloneDX SBOM](bom.cyclonedx.json)和[模型许可证说明](MODEL_LICENSES.md)。
+以及[模型许可证说明](MODEL_LICENSES.md)。Linux 和 Windows SBOM 分别在对应
+构建环境中动态生成，不再把某个平台的 SBOM 固定提交为仓库根文件。

@@ -60,8 +60,7 @@ jobs:
             NOTICE \
             MODEL_LICENSES.md \
             THIRD_PARTY_LICENSES.md \
-            THIRD_PARTY_NOTICES.txt \
-            bom.cyclonedx.json)"
+            THIRD_PARTY_NOTICES.txt)"
 
           if [[ "$workflow_core" == "true" ]]; then
             tests=true

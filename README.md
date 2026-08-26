@@ -421,5 +421,7 @@ Nota ASR Server is licensed under the [MIT License](LICENSE). Copyright (c) 2026
 
 Third-party packages and models retain their own licenses. See the
 [dependency inventory](THIRD_PARTY_LICENSES.md),
-[complete notices](THIRD_PARTY_NOTICES.txt), [CycloneDX SBOM](bom.cyclonedx.json),
-and [model license guidance](MODEL_LICENSES.md).
+[complete notices](THIRD_PARTY_NOTICES.txt), and
+[model license guidance](MODEL_LICENSES.md). Linux and Windows SBOMs are
+generated for their respective build environments instead of being committed
+as one platform-specific root file.

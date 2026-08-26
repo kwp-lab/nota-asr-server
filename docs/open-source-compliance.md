@@ -6,11 +6,13 @@ Nota ASR Server is MIT licensed. Third-party Python packages, operating-system
 packages, container base layers, and downloaded model weights retain their own
 licenses.
 
-## Reproducible Python inventory
+## Reproducible Python inventory and on-demand SBOM
 
 The supported release deployment is Linux CPU, represented by the `cpu`
-project extra and the committed `uv.lock`. Generate the committed legal
-artifacts inside the same Linux environment used by CI and the Docker image:
+project extra and the committed `uv.lock`. The repository tracks the reviewed
+dependency inventory and complete notices, but does not commit a
+platform-specific root SBOM. CI generates the Linux SBOM from its frozen
+environment and uploads it as a workflow artifact:
 
 ```bash
 docker run --rm -v "$PWD:/workspace" -w /workspace \
@@ -18,26 +20,33 @@ docker run --rm -v "$PWD:/workspace" -w /workspace \
   ghcr.io/astral-sh/uv:0.9.2-python3.12-bookworm-slim sh -lc \
   'uv sync --frozen --no-dev --extra cpu && uv run --no-sync python \
   scripts/generate_license_artifacts.py \
-  --python /tmp/nota-license-venv/bin/python'
+  --python /tmp/nota-license-venv/bin/python --check \
+  --sbom-output /workspace/dist/nota-asr-server-linux-python.bom.cyclonedx.json'
 ```
 
-Do not regenerate the committed inventory from a Windows environment: optional
+Ordinary contributors do not need to run this command merely because the
+project version or lock-file digest changed. Do not regenerate the tracked
+inventory and notices from a Windows environment: optional
 platform dependencies differ (`colorama` on Windows and `uvloop` on Linux).
 The generator preserves the selected virtual-environment entry point instead
 of resolving its Python symlink, so it cannot accidentally inspect CI runner
 packages. It uses pinned `pip-licenses 5.5.5`, applies
-`scripts/license-policy.json`, verifies reviewed exceptions, and writes:
+`scripts/license-policy.json`, verifies reviewed exceptions, and maintains:
 
 - `THIRD_PARTY_LICENSES.md`: package/version/license inventory;
 - `THIRD_PARTY_NOTICES.txt`: full installed license texts;
-- `bom.cyclonedx.json`: CycloneDX 1.6 Python production SBOM.
+- the CI artifact: an ephemeral CycloneDX 1.6 Linux Python SBOM.
+
+The Dockerfile generates `/app/bom.cyclonedx.json` after installing its frozen
+Python environment. A formal Linux release must attach the corresponding CI or
+build-generated SBOM to the release instead of copying a repository snapshot.
 
 The portable Windows CPU Runtime is a separate release inventory. Its local
 builder calls the same policy generator with `--output-dir` against the
 self-contained Windows interpreter and writes Windows-specific
 `THIRD_PARTY_LICENSES.md`, `THIRD_PARTY_NOTICES.txt`, and
 `bom.cyclonedx.json` under the Runtime's `legal/` directory. Those files must
-not replace or masquerade as the committed Linux CPU inventory.
+not replace or masquerade as a Linux CPU inventory.
 
 The release builder also records CPython 3.12.12 from Astral
 `python-build-standalone`, the uv version used to assemble it, and the bundled
@@ -47,19 +56,21 @@ SBOM. Windows PowerShell compression and, when used, Windows SDK signing tools
 are build tools recorded in the release manifest rather than merged into either
 dependency graph. They are not distributed as dependencies inside the ZIP.
 
-CI recreates the environment with `--frozen` and fails when policy or generated
-files differ. Unknown, AGPL, SSPL, BUSL, GPL-3.0, and unreviewed LGPL packages
-must not be accepted implicitly. A necessary exception must name one exact
-package version, rationale, upstream source, and verified installed license
-text.
+CI recreates the environment with `--frozen`, fails when the license policy or
+tracked inventory/notices differ, and generates the SBOM without comparing it
+to a committed copy. Unknown, AGPL, SSPL, BUSL, GPL-3.0, and unreviewed LGPL
+packages must not be accepted implicitly. A necessary exception must name one
+exact package version, rationale, upstream source, and verified installed
+license text.
 
 ## Distribution boundaries
 
 - The wheel and source distribution include the project license, notice,
   third-party notices, inventory, and model-license guidance through PEP 639
-  `license-files` metadata.
-- The Docker image installs the frozen `cpu` extra and retains the same legal
-  files under `/app`.
+  `license-files` metadata. Their SBOM is generated alongside a formal release
+  rather than embedded from the repository.
+- The Docker image installs the frozen `cpu` extra, retains the legal files
+  under `/app`, and generates its Linux Python SBOM during the image build.
 - The Python SBOM does not describe `python:3.12-slim`, Debian packages,
   FFmpeg, libsndfile, or their transitive native libraries. Before publishing
   an image, scan the final image into a separate OCI SBOM and review its
@@ -74,9 +85,12 @@ text.
 flowchart LR
     L["uv.lock + cpu extra"] --> E["Frozen production environment"]
     E --> P["pip-licenses policy check"]
-    P --> N["Notices + inventory + Python SBOM"]
+    P --> N["Tracked notices + inventory"]
+    P --> S["Generated Linux Python SBOM"]
     N --> W["Wheel / sdist"]
+    S --> A["CI / release artifact"]
     N --> D["Docker application layer"]
+    S --> D
     D --> O["Separate final-image SBOM before publication"]
     M["Runtime model downloads"] --> ML["MODEL_LICENSES.md review"]
     L --> WR["Windows locked CPU environment"]
