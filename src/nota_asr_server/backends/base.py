@@ -9,6 +9,9 @@ class BackendCapabilities:
     languages: tuple[str, ...]
     diarization: bool = True
     decoder_hotwords: bool = False
+    hotword_mode: str = "none"
+    hotword_max_entries: int = 0
+    hotword_max_entry_chars: int = 0
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,7 @@ class ASRBackend(ABC):
         diarization: bool,
         speaker_count: int | None,
         duration: float,
+        hotwords: tuple[str, ...] = (),
     ) -> BackendResult:
         raise NotImplementedError
 
@@ -84,6 +88,7 @@ class ASRBackend(ABC):
         language: str,
         diarization: bool,
         duration: float,
+        hotwords: tuple[str, ...] = (),
     ) -> BackendWindowResult:
         raise NotImplementedError
 

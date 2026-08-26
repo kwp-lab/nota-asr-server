@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 import torch
 
@@ -26,6 +28,13 @@ class CapturingModel:
                 ],
             }
         ]
+
+
+class LoggingHotwordModel(CapturingModel):
+    def generate(self, **kwargs):
+        logging.info("Harmless FunASR inference message")
+        logging.info("Hotword list: %s", [kwargs.get("hotword")])
+        return super().generate(**kwargs)
 
 
 def test_sensevoice_enables_native_punctuation_and_itn():
@@ -230,6 +239,59 @@ def test_nano_auto_language_is_omitted_and_reported_as_und():
 
     assert "language" not in model.generate_calls[0]
     assert result.language == "und"
+
+
+def test_paraformer_maps_hotwords_to_decoder_bias_parameter():
+    backend = ParaformerBackend(device="cpu")
+    model = CapturingModel()
+    backend._model = model
+
+    backend.transcribe(
+        "/tmp/meeting.wav",
+        language="auto",
+        diarization=False,
+        speaker_count=None,
+        duration=1.0,
+        hotwords=("Nota", "千问"),
+    )
+
+    assert model.generate_kwargs["hotword"] == "Nota 千问"
+
+
+def test_funasr_hotword_values_are_removed_from_upstream_logs(caplog):
+    backend = ParaformerBackend(device="cpu")
+    backend._model = LoggingHotwordModel()
+    caplog.set_level(logging.INFO)
+
+    backend.transcribe(
+        "/tmp/meeting.wav",
+        language="auto",
+        diarization=False,
+        speaker_count=None,
+        duration=1.0,
+        hotwords=("private-hotword-sentinel",),
+    )
+
+    assert "Harmless FunASR inference message" in caplog.text
+    assert "private-hotword-sentinel" not in caplog.text
+    assert "Hotword list" not in caplog.text
+
+
+def test_nano_maps_hotwords_to_prompt_list():
+    backend = FunAsrNanoBackend(device="cpu")
+    model = NanoCapturingModel()
+    backend._model = model
+
+    backend.transcribe(
+        "/tmp/meeting.wav",
+        language="auto",
+        diarization=False,
+        speaker_count=None,
+        duration=1.0,
+        hotwords=("Nota", "千问"),
+    )
+
+    assert model.generate_calls[0]["hotwords"] == ["Nota", "千问"]
 
 
 def test_nano_window_normalizes_segments_and_orders_speaker_centers():

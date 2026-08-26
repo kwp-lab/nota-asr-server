@@ -15,6 +15,16 @@ pytest --cov=nota_asr_server
 Contract and API tests use fake backends and must not download models. Real
 model smoke tests are operational checks and run separately.
 
+Hotword changes require capability-schema, normalization, idempotency,
+restart persistence, per-window mapping, unsupported-model, and privacy tests.
+Automated tests must not call DashScope or include real meeting terminology.
+
+Actual model influence is checked separately with the opt-in
+`examples/verify_hotword_effect.py` A/B probe. It submits the same Ogg audio
+without and with hotwords and is deliberately outside `tests/`, so normal
+`pytest` and CI runs never execute it. See `examples/README.md` for usage and
+exit-code semantics.
+
 Windows product changes also require the pinned Rust toolchain checks:
 
 ```powershell

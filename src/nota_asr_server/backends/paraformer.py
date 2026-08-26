@@ -50,6 +50,9 @@ class ParaformerBackend(FunASRBackend):
                 languages=("zh", "en"),
                 diarization=True,
                 decoder_hotwords=True,
+                hotword_mode="decoder_bias",
+                hotword_max_entries=500,
+                hotword_max_entry_chars=100,
             ),
             accepts_language_hint=False,
         )

@@ -22,7 +22,8 @@ Windows client
 - API routes own HTTP validation and response selection.
 - Audio storage owns bounded disk spooling, probing, and cleanup.
 - The batch job service owns SQLite durability, sequential upload offsets,
-  restart recovery, cancellation, processing windows, and final assembly.
+  restart recovery, cancellation, immutable hotword snapshots, processing
+  windows, and final assembly.
 - ModelManager owns allowlisting, lazy loading, and inference concurrency.
 - Backends own FunASR model configuration and model-specific language hints.
 - The model manager maps `NOTA_MODEL_DIR` to ModelScope's process-wide cache

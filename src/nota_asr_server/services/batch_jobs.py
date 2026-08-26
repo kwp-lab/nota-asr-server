@@ -79,6 +79,7 @@ class JobRecord:
     error_message: str | None
     cancel_requested: bool
     expires_at: str
+    hotwords: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -140,6 +141,7 @@ class BatchJobStore:
               language TEXT NOT NULL,
               diarization INTEGER NOT NULL,
               speaker_count INTEGER,
+              hotwords_json TEXT NOT NULL DEFAULT '[]',
               duration REAL,
               progress_current INTEGER NOT NULL DEFAULT 0,
               progress_total INTEGER NOT NULL DEFAULT 0,
@@ -168,7 +170,22 @@ class BatchJobStore:
             """
         )
         self._ensure_window_columns()
+        self._ensure_job_columns()
         self._recover_disk_offsets()
+
+    def _ensure_job_columns(self) -> None:
+        columns = {
+            str(row["name"])
+            for row in self._connection.execute(
+                "PRAGMA table_info(transcription_jobs)"
+            ).fetchall()
+        }
+        if "hotwords_json" not in columns:
+            self._connection.execute(
+                "ALTER TABLE transcription_jobs "
+                "ADD COLUMN hotwords_json TEXT NOT NULL DEFAULT '[]'"
+            )
+        self._connection.commit()
 
     def _ensure_window_columns(self) -> None:
         columns = {
@@ -226,6 +243,7 @@ class BatchJobStore:
                     or job.language != request.language
                     or job.diarization != request.diarization
                     or job.speaker_count != request.speaker_count
+                    or job.hotwords != tuple(request.hotwords)
                 ):
                     raise APIError(
                         409,
@@ -245,9 +263,9 @@ class BatchJobStore:
                     INSERT INTO transcription_jobs (
                       id, owner, idempotency_key, state, phase, file_name,
                       content_type, upload_length, upload_offset, model, language,
-                      diarization, speaker_count, progress_current, progress_total,
+                      diarization, speaker_count, hotwords_json, progress_current, progress_total,
                       progress_unit, created_at, updated_at, expires_at
-                    ) VALUES (?, ?, ?, 'uploading', 'uploading', ?, ?, ?, 0, ?, ?, ?, ?,
+                    ) VALUES (?, ?, ?, 'uploading', 'uploading', ?, ?, ?, 0, ?, ?, ?, ?, ?,
                               0, ?, 'bytes', ?, ?, ?)
                     """,
                     (
@@ -261,6 +279,7 @@ class BatchJobStore:
                         request.language,
                         int(request.diarization),
                         request.speaker_count,
+                        json.dumps(request.hotwords, ensure_ascii=False, separators=(",", ":")),
                         request.size_bytes,
                         timestamp,
                         timestamp,
@@ -777,6 +796,7 @@ class BatchJobStore:
             error_message=row["error_message"],
             cancel_requested=bool(row["cancel_requested"]),
             expires_at=str(row["expires_at"]),
+            hotwords=tuple(json.loads(str(row["hotwords_json"]))),
         )
 
 
@@ -836,6 +856,8 @@ class BatchJobService:
         model = request.model or self.settings.preload_model
         if model not in self.settings.enabled_models:
             raise APIError(400, "model_not_found", f"Unknown model: {model}")
+        hotwords = self._normalize_hotwords(model, request.hotwords)
+        request = request.model_copy(update={"hotwords": list(hotwords)})
         if self.store.find_by_idempotency(owner, idempotency_key) is not None:
             return self.store.create(
                 owner,
@@ -848,6 +870,42 @@ class BatchJobService:
             "There is not enough disk space to accept this recording",
         )
         return self.store.create(owner, idempotency_key, request, model=model)
+
+    def _normalize_hotwords(
+        self,
+        model: str,
+        values: list[str],
+    ) -> tuple[str, ...]:
+        if not values:
+            return ()
+        capabilities = self.model_manager.model_capabilities(model)
+        normalized: list[str] = []
+        seen: set[str] = set()
+        if values and capabilities.hotword_mode == "none":
+            raise APIError(
+                400,
+                "hotwords_not_supported",
+                "The selected model does not support hotwords",
+            )
+        for value in values:
+            item = value.strip()
+            if not item or item in seen:
+                continue
+            if len(item) > capabilities.hotword_max_entry_chars:
+                raise APIError(
+                    422,
+                    "invalid_hotwords",
+                    "A hotword exceeds the selected model's character limit",
+                )
+            seen.add(item)
+            normalized.append(item)
+        if len(normalized) > capabilities.hotword_max_entries:
+            raise APIError(
+                422,
+                "invalid_hotwords",
+                "The hotword count exceeds the selected model's limit",
+            )
+        return tuple(normalized)
 
     def upload(
         self,
@@ -1074,12 +1132,17 @@ class BatchJobService:
                     ).astype(np.float32, copy=False)
             actual_duration = len(mono) / TARGET_SAMPLE_RATE
             sf.write(temp_path, mono, TARGET_SAMPLE_RATE, subtype="PCM_16", format="WAV")
+            inference_kwargs: dict[str, Any] = {
+                "language": job.language,
+                "diarization": job.diarization,
+                "duration": actual_duration,
+            }
+            if job.hotwords:
+                inference_kwargs["hotwords"] = job.hotwords
             window_result = self.model_manager.transcribe_window(
                 job.model,
                 str(temp_path),
-                language=job.language,
-                diarization=job.diarization,
-                duration=actual_duration,
+                **inference_kwargs,
             )
             if job.diarization and window_result.result.text:
                 voiced_segments = [

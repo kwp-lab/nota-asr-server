@@ -87,6 +87,7 @@ def test_model_install_is_staged_marked_and_verified(tmp_path, fake_snapshot):
     )
     assert marker["snapshot_sha256"] == snapshot_digest(fake_snapshot)[0]
     assert store.reference("asr", policy="explicit") == (str(installed), None)
+    assert store.reference("asr", policy="on_demand") == (str(installed), None)
     assert not (store.root / ".downloads" / "asr").exists()
     assert events[0]["event"] == "component_started"
     assert events[-1]["event"] == "component_completed"

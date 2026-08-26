@@ -7,7 +7,12 @@ from nota_asr_server.backends import (
     ParaformerBackend,
     SenseVoiceBackend,
 )
-from nota_asr_server.backends.base import ASRBackend, BackendResult, BackendWindowResult
+from nota_asr_server.backends.base import (
+    ASRBackend,
+    BackendCapabilities,
+    BackendResult,
+    BackendWindowResult,
+)
 from nota_asr_server.backends.speaker_embedding import (
     SpeakerEmbeddingBackend,
     SpeakerSampleAnalysis,
@@ -92,6 +97,7 @@ class ModelManager:
         diarization: bool,
         speaker_count: int | None,
         duration: float,
+        hotwords: tuple[str, ...] = (),
     ) -> BackendResult:
         backend = self.get_backend(model)
         with self._inference_gate:
@@ -101,6 +107,7 @@ class ModelManager:
                 diarization=diarization,
                 speaker_count=speaker_count,
                 duration=duration,
+                hotwords=hotwords,
             )
 
     def transcribe_window(
@@ -111,6 +118,7 @@ class ModelManager:
         language: str,
         diarization: bool,
         duration: float,
+        hotwords: tuple[str, ...] = (),
     ) -> BackendWindowResult:
         backend = self.get_backend(model)
         with self._inference_gate:
@@ -119,6 +127,7 @@ class ModelManager:
                 language=language,
                 diarization=diarization,
                 duration=duration,
+                hotwords=hotwords,
             )
 
     def cluster_speaker_centers(
@@ -185,7 +194,25 @@ class ModelManager:
                         "languages": list(capabilities.languages),
                         "diarization": capabilities.diarization,
                         "decoder_hotwords": capabilities.decoder_hotwords,
+                        "hotwords": self._hotword_capabilities(capabilities),
                     },
                 }
             )
         return items
+
+    def model_capabilities(self, name: str) -> BackendCapabilities:
+        if name not in self.settings.enabled_models or name not in self._backend_types:
+            raise UnknownModelError(name)
+        backend = self._backends.get(name)
+        if backend is None:
+            backend = self._backend_types[name](self.settings.device)
+        return backend.capabilities
+
+    @staticmethod
+    def _hotword_capabilities(capabilities: BackendCapabilities) -> dict[str, object]:
+        return {
+            "supported": capabilities.hotword_mode != "none",
+            "mode": capabilities.hotword_mode,
+            "max_entries": capabilities.hotword_max_entries,
+            "max_entry_chars": capabilities.hotword_max_entry_chars,
+        }

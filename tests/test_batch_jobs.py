@@ -18,6 +18,7 @@ from nota_asr_server.backends.base import (
     BackendSegment,
     BackendWindowResult,
     SpeakerTraceChunk,
+    BackendCapabilities,
 )
 from nota_asr_server.config import Settings
 from nota_asr_server.main import create_app
@@ -36,6 +37,19 @@ class FakeBatchModelManager:
     loaded_models = ["sensevoice"]
     readiness_detail = None
 
+    def __init__(self):
+        self.captured_hotwords = ()
+
+    def model_capabilities(self, model):
+        if model == "sensevoice":
+            return BackendCapabilities(languages=("zh",), hotword_mode="none")
+        return BackendCapabilities(
+            languages=("zh",),
+            hotword_mode="decoder_bias" if model == "paraformer" else "prompt",
+            hotword_max_entries=500,
+            hotword_max_entry_chars=100,
+        )
+
     def preload(self):
         return None
 
@@ -50,7 +64,9 @@ class FakeBatchModelManager:
         language,
         diarization,
         duration,
+        hotwords=(),
     ):
+        self.captured_hotwords = hotwords
         assert Path(audio_path).is_file()
         return BackendWindowResult(
             result=BackendResult(
@@ -107,6 +123,38 @@ def create_payload(size: int, *, model: str = "sensevoice") -> dict:
     }
 
 
+def test_hotwords_are_normalized_persisted_and_part_of_idempotency(tmp_path):
+    configured = settings(tmp_path)
+    service = BatchJobService(configured, FakeBatchModelManager())
+    try:
+        payload = create_payload(128, model="paraformer")
+        payload["hotwords"] = [" Nota ", "千问", "Nota", ""]
+        request = CreateTranscriptionJob.model_validate(payload)
+        job = service.create("anonymous", "hotword-job", request)
+        assert job.hotwords == ("Nota", "千问")
+
+        changed = CreateTranscriptionJob.model_validate(
+            {**payload, "hotwords": ["另一个词"]}
+        )
+        with pytest.raises(Exception, match="Idempotency-Key"):
+            service.create("anonymous", "hotword-job", changed)
+    finally:
+        service.store.close()
+
+
+def test_sensevoice_rejects_hotwords_before_upload(tmp_path):
+    service = BatchJobService(settings(tmp_path), FakeBatchModelManager())
+    try:
+        payload = create_payload(128, model="sensevoice")
+        payload["hotwords"] = ["Nota"]
+        request = CreateTranscriptionJob.model_validate(payload)
+        with pytest.raises(Exception, match="does not support hotwords"):
+            service.create("anonymous", "unsupported-hotwords", request)
+        assert list(service.store.jobs_dir.iterdir()) == []
+    finally:
+        service.store.close()
+
+
 def test_store_adds_turn_alignment_columns_to_existing_window_table(tmp_path):
     configured = settings(tmp_path)
     configured.data_dir.mkdir(parents=True)
@@ -139,6 +187,28 @@ def test_store_adds_turn_alignment_columns_to_existing_window_table(tmp_path):
         assert {"speaker_trace_blob", "aligned_tokens_json"} <= columns
     finally:
         store.close()
+
+
+def test_store_adds_hotword_snapshot_column_to_existing_job_table(tmp_path):
+    configured = settings(tmp_path)
+    store = BatchJobStore(configured)
+    store.close()
+    connection = sqlite3.connect(configured.data_dir / "nota-asr.sqlite3")
+    connection.execute("ALTER TABLE transcription_jobs DROP COLUMN hotwords_json")
+    connection.commit()
+    connection.close()
+
+    migrated = BatchJobStore(configured)
+    try:
+        columns = {
+            row[1]
+            for row in migrated._connection.execute(
+                "PRAGMA table_info(transcription_jobs)"
+            ).fetchall()
+        }
+        assert "hotwords_json" in columns
+    finally:
+        migrated.close()
 
 
 def wait_for_state(client: TestClient, job_id: str, expected: str) -> dict:

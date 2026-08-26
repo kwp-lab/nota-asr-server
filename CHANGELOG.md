@@ -7,6 +7,21 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-25
+
+### Added
+
+- Added versioned batch hotword requests with persisted idempotent snapshots,
+  structured model capabilities, Paraformer decoder bias, and Fun-ASR-Nano
+  prompt hotwords.
+
+### Fixed
+
+- Preferred installed managed model snapshots even under the `on_demand`
+  policy, preventing FunASR from downloading redundant ModelScope cache copies
+  and preserving offline startup after installation.
+- Filtered request hotword values from third-party FunASR inference logs.
+
 ## [0.3.0] - 2026-08-22
 
 ### Fixed
@@ -169,7 +184,8 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 - Added health, readiness, model discovery, optional Bearer authentication,
   Docker, and systemd deployment support.
 
-[Unreleased]: https://github.com/kwp-lab/nota-asr-server/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/kwp-lab/nota-asr-server/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/kwp-lab/nota-asr-server/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/kwp-lab/nota-asr-server/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/kwp-lab/nota-asr-server/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/kwp-lab/nota-asr-server/releases/tag/v0.1.0

@@ -32,10 +32,25 @@ class VerboseTranscription(StrictModel):
     segments: list[TranscriptionSegment]
 
 
+class HotwordModelCapabilities(StrictModel):
+    supported: bool
+    mode: Literal["none", "decoder_bias", "prompt"]
+    max_entries: int = Field(ge=0)
+    max_entry_chars: int = Field(ge=0)
+
+
 class ModelCapabilities(StrictModel):
     languages: list[str]
     diarization: bool
     decoder_hotwords: bool
+    hotwords: HotwordModelCapabilities = Field(
+        default_factory=lambda: HotwordModelCapabilities(
+            supported=False,
+            mode="none",
+            max_entries=0,
+            max_entry_chars=0,
+        )
+    )
 
 
 class ModelInfo(StrictModel):
@@ -78,6 +93,7 @@ class ErrorEnvelope(StrictModel):
 
 class BatchCapabilities(StrictModel):
     batch_transcription_version: Literal["1"] = "1"
+    hotword_request_version: Literal["1"] = "1"
     speaker_embedding_version: Literal["1"] = "1"
     speaker_sample_analysis_version: Literal["1"] = "1"
     upload_chunk_bytes: int = Field(gt=0)
@@ -133,6 +149,7 @@ class CreateTranscriptionJob(StrictModel):
     response_format: Literal["verbose_json"] = "verbose_json"
     diarization: bool = True
     speaker_count: int | None = Field(default=None, ge=1, le=64)
+    hotwords: list[str] = Field(default_factory=list)
 
 
 class JobFailure(StrictModel):

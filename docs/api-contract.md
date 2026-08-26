@@ -65,6 +65,14 @@ Nota meeting clients discover `batch_transcription_version=1` at
 original Ogg sequentially with `Upload-Offset` and
 `Upload-Checksum: sha256=<hex>`, finalize it, poll status, and fetch the result.
 
+Servers that accept per-job hotwords advertise
+`hotword_request_version="1"`. Job creation then accepts optional
+`hotwords: string[]`; omission or an empty array preserves previous behavior.
+The selected model's `/v1/models` capability declares `supported`, `mode`,
+`max_entries`, and `max_entry_chars`. Unsupported models return stable code
+`hotwords_not_supported` before audio upload. Hotwords are request metadata,
+are not returned in the final transcript, and are deleted with the job.
+
 The final `GET /v1/nota/transcription-jobs/{id}/result` response is exactly the
 Stable Verbose Response above. A successful result read does not delete data:
 the client first commits the response locally and then acknowledges cleanup
