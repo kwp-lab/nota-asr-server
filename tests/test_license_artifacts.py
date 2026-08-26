@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import sys
 from pathlib import Path
 
-from scripts import generate_license_artifacts as artifacts
+
+SCRIPT_PATH = Path(__file__).parents[1] / "scripts" / "generate_license_artifacts.py"
+SPEC = importlib.util.spec_from_file_location("generate_license_artifacts", SCRIPT_PATH)
+assert SPEC is not None and SPEC.loader is not None
+artifacts = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(artifacts)
 
 
 def _packages() -> list[dict[str, object]]:
